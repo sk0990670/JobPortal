@@ -1,0 +1,124 @@
+# =====================================================
+# 1. API GATEWAY (NGINX Ingress Controller)
+# =====================================================
+ingress-nginx:
+  controller:
+    replicaCount: 2
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true # Let Prometheus automatically scrape NGINX metrics
+    service:
+      type: LoadBalancer # Exposes the Gateway to the internet
+
+# =====================================================
+# 2. PROMETHEUS STACK
+# (Includes Prometheus, Grafana, Alertmanager, Node Exporter)
+# =====================================================
+kube-prometheus-stack:
+  # --- Grafana Configuration ---
+  grafana:
+    enabled: true
+    adminPassword: "admin" # Change this in production!
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - grafana.jobportal.local # Access Grafana via this URL
+
+  # --- Prometheus Configuration ---
+  prometheus:
+    prometheusSpec:
+      retention: 15d # Keep metrics for 15 days
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+
+  # --- Alertmanager Configuration ---
+  alertmanager:
+    enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['job']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'slack-notifications' # Setup your receiver
+      receivers:
+        - name: 'slack-notifications'
+          # Add slack_configs here for actual alerts
+
+  # --- Node Exporter (Hardware Metrics) ---
+  nodeExporter:
+    enabled: true # Automatically runs a DaemonSet to collect CPU/RAM per Node
+
+# =====================================================
+# 3. BLACKBOX EXPORTER
+# (Pings your endpoints to check uptime)
+# =====================================================
+prometheus-blackbox-exporter:
+  restartPolicy: Always
+  serviceMonitor:
+    enabled: true
+    targets:
+      # Target 1: Make sure the Frontend is returning HTML
+      - name: jobportal-frontend-uptime
+        url: http://jobportal-frontend # Replace with actual K8s service name
+        module: http_2xx
+      
+      # Target 2: Make sure the Backend API is responding
+      - name: jobportal-backend-uptime
+        url: http://jobportal-backend/api/jobs # Pings a public API route
+        module: http_2xx
+
+# =====================================================
+# 4. KAFKA CLUSTER
+# (Message Broker for high-scale asynchronous tasks)
+# =====================================================
+kafka:
+  enabled: true
+  
+  # Standard for High Availability (requires 3 K8s nodes)
+  replicaCount: 3 
+  
+  zookeeper:
+    enabled: true
+    replicaCount: 3
+
+  # Metrics for Prometheus
+  metrics:
+    kafka:
+      enabled: true
+    serviceMonitor:
+      # This tells Prometheus to automatically scrape Kafka's health and throughput metrics!
+      enabled: true 
+      namespace: monitoring
+
+# =====================================================
+# 5. ARGOCD (GitOps Deployment Controller)
+# =====================================================
+argo-cd:
+  server:
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - argocd.jobportal.local
+  controller:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+
+# =====================================================
+# 6. ARGO ROLLOUTS (Blue/Green Deployments)
+# =====================================================
+argo-rollouts:
+  dashboard:
+    enabled: true
+    ingress:
+      enabled: true
+      ingressClassName: nginx
+      hosts:
+        - rollouts.jobportal.local

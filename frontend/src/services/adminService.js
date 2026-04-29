@@ -1,0 +1,9 @@
+import api from './api';
+
+export const adminService = {
+  getStats: async (params = {}) => {
+    // If we want date ranges, we can pass start/end
+    const response = await api.get('/admin/stats', { params });
+    return response.data;
+  },
+};

@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: jobportal-backend-rollout
+  namespace: default
+spec:
+  replicas: 2
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: jobportal-backend
+  template:
+    metadata:
+      labels:
+        app: jobportal-backend
+    spec:
+      containers:
+      - name: jobportal-backend
+        image: solosahej/jobportal-backend:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+  
+  # ----------------------------------------------------
+  # BLUE-GREEN DEPLOYMENT STRATEGY
+  # ----------------------------------------------------
+  strategy:
+    blueGreen:
+      # The active service routes to the current stable version
+      activeService: jobportal-backend-active
+      # The preview service routes to the new "green" version for testing
+      previewService: jobportal-backend-preview
+      
+      # Automatically promote the new version after 5 minutes of preview time.
+      # If you want to manually promote via ArgoCD UI, remove autoPromotionEnabled.
+      autoPromotionEnabled: false
+      
+      # Optional: wait for approval before killing the old Blue instances
+      scaleDownDelaySeconds: 30

@@ -1,0 +1,37 @@
+apiVersion: v2
+name: jobportal-ops
+description: Helm Umbrella chart for JobPortal API Gateway and Monitoring Stack (Prometheus, Grafana, Node Exporter, Blackbox, AlertManager)
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  # 1. API Gateway (NGINX Ingress Controller)
+  - name: ingress-nginx
+    version: 4.8.3
+    repository: https://kubernetes.github.io/ingress-nginx
+
+  # 2. Monitoring Stack (Prometheus, Grafana, Alertmanager, Node Exporter)
+  - name: kube-prometheus-stack
+    version: 55.4.0
+    repository: https://prometheus-community.github.io/helm-charts
+
+  # 3. Blackbox Exporter (Endpoint probing)
+  - name: prometheus-blackbox-exporter
+    version: 8.6.0
+    repository: https://prometheus-community.github.io/helm-charts
+
+  # 4. Kafka Cluster (Message Broker)
+  - name: kafka
+    version: 26.4.2
+    repository: https://charts.bitnami.com/bitnami
+
+  # 5. ArgoCD (GitOps Deployment)
+  - name: argo-cd
+    version: 6.7.11
+    repository: https://argoproj.github.io/argo-helm
+
+  # 6. Argo Rollouts (Blue/Green Deployments)
+  - name: argo-rollouts
+    version: 2.35.1
+    repository: https://argoproj.github.io/argo-helm

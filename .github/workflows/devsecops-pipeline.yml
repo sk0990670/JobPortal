@@ -1,0 +1,174 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  unit_tests:
+    name: Run Jest Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci || npm install
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: npm test
+
+  security_scans:
+    name: Source Code Security Scans
+    runs-on: ubuntu-latest
+    needs: unit_tests
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Required for SonarQube
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # continue-on-error: true # Uncomment if you want the pipeline to proceed even if secrets are found
+
+      - name: Trivy FS Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Generate SBOM
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'cyclonedx'
+          output: 'sbom.json'
+      
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=JobPortal
+            -Dsonar.sources=frontend/src,backend
+
+  build_and_push:
+    name: Build, Scan & Push Docker Images
+    runs-on: ubuntu-latest
+    needs: security_scans
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ----------------- BACKEND -----------------
+      - name: Build Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          load: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-backend:latest
+          
+      - name: Trivy Scan Backend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/jobportal-backend:latest'
+          format: 'table'
+          exit-code: '1' # Set to 0 if you don't want to block the build on vulns
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-backend:latest
+
+      # ----------------- FRONTEND -----------------
+      - name: Build Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          load: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-frontend:latest
+          
+      - name: Trivy Scan Frontend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/jobportal-frontend:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-frontend:latest
+
+  # ----------------- GITOPS: UPDATE MANIFESTS FOR ARGOCD -----------------
+  update_manifests:
+    name: Update K8s Manifests for ArgoCD
+    runs-on: ubuntu-latest
+    needs: build_and_push
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Image Tags in Kubernetes Manifests
+        run: |
+          sed -i "s|image: .*/jobportal-backend:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-backend:${{ github.sha }}|g" k8s/backend-rollout.yaml
+          sed -i "s|image: .*/jobportal-frontend:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/jobportal-frontend:${{ github.sha }}|g" k8s/frontend-rollout.yaml
+          echo "Updating manifests with new Docker image tags..."
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/
+          git commit -m "chore: update image tags to ${{ github.sha }} for ArgoCD"
+          git push origin main
+          echo "Committing changes to trigger ArgoCD sync..."
