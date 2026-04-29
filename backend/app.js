@@ -57,7 +57,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: true, // Allow true to reflect origin (handles any Vercel preview domain dynamically)
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -71,19 +71,20 @@ if (process.env.NODE_ENV === 'development') {
 // Static files (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// API Routes
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/applications', applicationRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/resources',    resourceRoutes);
-app.use('/api/subscribers',  subscriberRoutes);
-app.use('/api/admin',        adminRoutes);
-app.use('/api/notifications', notificationRoutes);
+// Create an API router so we can mount it on multiple paths (local and Vercel)
+const apiRouter = express.Router();
 
-// Health check
-app.get('/api/health', (req, res) => {
+apiRouter.use('/auth', authLimiter, authRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/jobs', jobRoutes);
+apiRouter.use('/applications', applicationRoutes);
+apiRouter.use('/companies', companyRoutes);
+apiRouter.use('/resources', resourceRoutes);
+apiRouter.use('/subscribers', subscriberRoutes);
+apiRouter.use('/admin', adminRoutes);
+apiRouter.use('/notifications', notificationRoutes);
+
+apiRouter.get('/health', (req, res) => {
   res.json({
     success: true,
     status: 'OK',
@@ -92,6 +93,12 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV,
   });
 });
+
+// Mount on standard /api
+app.use('/api', apiRouter);
+
+// Mount on Vercel's routePrefix /_/backend/api
+app.use('/_/backend/api', apiRouter);
 
 // Error middleware (must be last)
 app.use(notFound);
