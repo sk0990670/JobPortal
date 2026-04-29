@@ -6,11 +6,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          redux: ['@reduxjs/toolkit', 'react-redux'],
-          ui: ['lucide-react', 'react-dropzone', 'react-hot-toast'],
-          utils: ['axios', 'date-fns', 'socket.io-client', '@tanstack/react-query']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor';
+            }
+            if (id.includes('@reduxjs/toolkit') || id.includes('react-redux')) {
+              return 'redux';
+            }
+            if (id.includes('lucide-react') || id.includes('react-dropzone') || id.includes('react-hot-toast')) {
+              return 'ui';
+            }
+            return 'core-vendor';
+          }
         }
       }
     },
