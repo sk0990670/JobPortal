@@ -57,7 +57,7 @@ const LandingPage = () => {
   return (
     <div className="animate-fade-in">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-16 px-4">
+      <section className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-10 sm:py-16 px-4">
         <div className="page-container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -65,19 +65,20 @@ const LandingPage = () => {
                 <Star size={12} className="text-yellow-400 fill-yellow-400" />
                 Find the right opportunity
               </div>
-              <h1 className="text-5xl font-extrabold text-gray-900 leading-tight mb-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
                 Find Opportunities.<br />
                 Kickstart <span className="text-gradient">Your Career</span>
               </h1>
-              <p className="text-lg text-gray-600 mb-8">
+              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
                 Discover internships and entry-level jobs from top companies and build your future.
               </p>
 
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="mb-5">
-                <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-2 flex items-center gap-0">
+                {/* Mobile: stacked layout | Desktop: single-row pill */}
+                <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                   {/* Job title */}
-                  <div className="flex items-center gap-2 flex-[1.5] min-w-0 px-3 py-2">
+                  <div className="flex items-center gap-2 sm:flex-[1.5] min-w-0 px-3 py-2">
                     <Search size={16} className="text-gray-400 flex-shrink-0" />
                     <input
                       value={search}
@@ -86,10 +87,11 @@ const LandingPage = () => {
                       className="flex-1 min-w-0 text-sm outline-none bg-transparent placeholder-gray-400"
                     />
                   </div>
-                  {/* Divider */}
-                  <div className="w-px h-6 bg-gray-200 flex-shrink-0" />
+                  {/* Divider (desktop only) */}
+                  <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
+                  <div className="block sm:hidden h-px bg-gray-100 mx-3" />
                   {/* Location */}
-                  <div className="flex items-center gap-2 flex-1 min-w-0 px-3 py-2">
+                  <div className="flex items-center gap-2 sm:flex-1 min-w-0 px-3 py-2">
                     <MapPin size={16} className="text-gray-400 flex-shrink-0" />
                     <input
                       value={location}
@@ -98,16 +100,17 @@ const LandingPage = () => {
                       className="flex-1 min-w-0 text-sm outline-none bg-transparent placeholder-gray-400"
                     />
                   </div>
-                  {/* Divider */}
-                  <div className="w-px h-6 bg-gray-200 flex-shrink-0" />
+                  {/* Divider (desktop only) */}
+                  <div className="hidden sm:block w-px h-6 bg-gray-200 flex-shrink-0" />
+                  <div className="block sm:hidden h-px bg-gray-100 mx-3" />
                   {/* Job Type — custom dropdown */}
                   <div className="flex items-center gap-2 flex-shrink-0 px-3 py-2 relative">
                     <BriefcaseBusiness size={16} className="text-gray-400 flex-shrink-0" />
-                    <div className="relative" onMouseLeave={handleMenuLeave} onMouseEnter={handleMenuEnter}>
+                    <div className="relative flex-1 sm:flex-none" onMouseLeave={handleMenuLeave} onMouseEnter={handleMenuEnter}>
                       <button
                         type="button"
                         onClick={() => setJobTypeOpen(o => !o)}
-                        className="flex items-center gap-2 text-sm outline-none bg-transparent cursor-pointer w-36 text-left"
+                        className="flex items-center gap-2 text-sm outline-none bg-transparent cursor-pointer w-full sm:w-36 text-left"
                       >
                         <span className={jobType ? 'text-gray-900 font-medium' : 'text-gray-400'}>
                           {jobType || 'Select Job Type'}
@@ -140,8 +143,8 @@ const LandingPage = () => {
                       )}
                     </div>
                   </div>
-                  {/* Search Button — inside the white box */}
-                  <button type="submit" className="btn-primary ml-1 px-6 rounded-xl flex-shrink-0">
+                  {/* Search Button */}
+                  <button type="submit" className="btn-primary sm:ml-1 px-6 rounded-xl flex-shrink-0 w-full sm:w-auto py-3 sm:py-2">
                     Search Jobs
                   </button>
                 </div>
@@ -228,16 +231,16 @@ const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-14 bg-gradient-to-r from-primary-600 to-indigo-600">
+      <section className="py-10 sm:py-14 bg-gradient-to-r from-primary-600 to-indigo-600">
         <div className="page-container text-center text-white">
           <TrendingUp size={40} className="mx-auto mb-4 opacity-80" />
-          <h2 className="text-3xl font-bold mb-3">Ready to Kickstart Your Career?</h2>
-          <p className="text-primary-100 mb-6 max-w-md mx-auto">Join thousands of students finding internships and jobs at top companies.</p>
-          <div className="flex items-center justify-center gap-3">
-            <Link to="/signup" className="btn bg-white text-primary-700 hover:bg-primary-50 font-semibold px-6 py-3 rounded-xl">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to Kickstart Your Career?</h2>
+          <p className="text-primary-100 mb-6 max-w-md mx-auto text-sm sm:text-base">Join thousands of students finding internships and jobs at top companies.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/signup" className="btn bg-white text-primary-700 hover:bg-primary-50 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
               Get Started Free
             </Link>
-            <Link to="/jobs" className="btn border border-white/50 text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-xl">
+            <Link to="/jobs" className="btn border border-white/50 text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
               Browse Jobs
             </Link>
           </div>

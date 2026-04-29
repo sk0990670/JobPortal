@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { jobService } from '../services/jobService';
 import JobCard from '../components/common/JobCard';
@@ -33,8 +33,87 @@ const FilterCheckbox = ({ label, checked, onChange }) => (
   </label>
 );
 
+// Shared filter panel content used in both desktop sidebar and mobile drawer
+const FilterPanelContent = ({
+  selectedTypes, toggleType,
+  location, setLocation,
+  salary, setSalary,
+  selectedSkills, toggleSkill,
+  selectedBatches, toggleBatch,
+  data, setPage, clearAll
+}) => (
+  <>
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="font-semibold text-gray-900">Filters</h3>
+      <button onClick={clearAll} className="text-xs text-primary-600 hover:text-primary-700 font-medium">Clear all</button>
+    </div>
+
+    {/* Job Type */}
+    <div className="mb-5">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Job Type</h4>
+      <div className="space-y-2">
+        {JOB_TYPES.map(t => <FilterCheckbox key={t} label={t} checked={selectedTypes.includes(t)} onChange={() => toggleType(t)} />)}
+      </div>
+    </div>
+
+    {/* Location */}
+    <div className="mb-5">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Location</h4>
+      <input value={location} onChange={e => setLocation(e.target.value)}
+        placeholder="Search location..." className="input mb-2" />
+      <div className="space-y-2">
+        {LOCATIONS.map(l => <FilterCheckbox key={l} label={l} checked={location === l} onChange={() => setLocation(l === location ? '' : l)} />)}
+      </div>
+    </div>
+
+    {/* Salary */}
+    <div className="mb-5">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Stipend (Monthly)</h4>
+      <input type="range" min={0} max={150000} step={5000} value={salary[1]}
+        onChange={e => setSalary([salary[0], Number(e.target.value)])}
+        className="w-full accent-primary-600" />
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>₹0</span><span>₹{salary[1].toLocaleString()}+</span>
+      </div>
+    </div>
+
+    {/* Skill Categories */}
+    <div className="mb-5">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Skills</h4>
+      <div className="space-y-3">
+        {Object.entries(SKILL_CATEGORIES).map(([category, keywords]) => (
+          <div key={category}>
+            <FilterCheckbox
+              label={category}
+              checked={selectedSkills.includes(category)}
+              onChange={() => toggleSkill(category)}
+            />
+            {selectedSkills.includes(category) && (
+              <p className="text-xs text-gray-400 mt-1 ml-6 leading-relaxed">
+                {keywords.slice(0, 5).join(', ')}{keywords.length > 5 ? ` +${keywords.length - 5} more` : ''}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Batch */}
+    <div className="mb-5">
+      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Batch</h4>
+      <div className="space-y-2">
+        {BATCHES.map(b => <FilterCheckbox key={b} label={b} checked={selectedBatches.includes(b)} onChange={() => toggleBatch(b)} />)}
+      </div>
+    </div>
+
+    <button onClick={() => setPage(1)} className="btn-primary w-full mt-2">
+      Show {data?.total || 0} Jobs
+    </button>
+  </>
+);
+
 const JobListingPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [location, setLocation] = useState(searchParams.get('location') || '');
   const [selectedTypes, setSelectedTypes] = useState([]);
@@ -64,13 +143,19 @@ const JobListingPage = () => {
     staleTime: 2 * 60 * 1000,
   });
 
-  const toggleType = (type) => setSelectedTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+  const toggleType  = (type)  => setSelectedTypes(prev  => prev.includes(type)  ? prev.filter(t => t !== type)  : [...prev, type]);
   const toggleSkill = (skill) => setSelectedSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
   const toggleBatch = (batch) => setSelectedBatches(prev => prev.includes(batch) ? prev.filter(b => b !== batch) : [...prev, batch]);
   const clearAll = () => { setSelectedTypes([]); setSelectedSkills([]); setSelectedBatches([]); setSalary([0, 150000]); setLocation(''); setSearch(''); setPage(1); };
 
+  const activeFilterCount =
+    selectedTypes.length + selectedSkills.length + selectedBatches.length +
+    (salary[1] < 150000 ? 1 : 0) + (location ? 1 : 0);
+
+  const filterProps = { selectedTypes, toggleType, location, setLocation, salary, setSalary, selectedSkills, toggleSkill, selectedBatches, toggleBatch, data, setPage, clearAll };
+
   return (
-    <div className="page-container py-6 animate-fade-in">
+    <div className="page-container py-4 sm:py-6 animate-fade-in">
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1 flex items-center gap-2 input">
@@ -79,97 +164,82 @@ const JobListingPage = () => {
             placeholder="Search by title, role or keyword"
             className="flex-1 outline-none text-sm bg-transparent" />
         </div>
-        <div className="flex items-center gap-2 input sm:w-56">
-          <span className="text-gray-400">📍</span>
-          <input value={location} onChange={e => { setLocation(e.target.value); setPage(1); }}
-            placeholder="Location"
-            className="flex-1 outline-none text-sm bg-transparent" />
+        <div className="flex gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 input flex-1 sm:w-56">
+            <span className="text-gray-400">📍</span>
+            <input value={location} onChange={e => { setLocation(e.target.value); setPage(1); }}
+              placeholder="Location"
+              className="flex-1 outline-none text-sm bg-transparent" />
+          </div>
+          {/* Sort — hidden on mobile (available inside filter drawer) */}
+          <div className="relative hidden sm:block">
+            <select value={sort} onChange={e => setSort(e.target.value)}
+              className="input appearance-none pr-8 cursor-pointer w-full sm:w-44">
+              <option value="-createdAt">Most Recent</option>
+              <option value="-salary.min">Highest Salary</option>
+              <option value="title">A-Z</option>
+            </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <button onClick={() => setShowFilters(!showFilters)}
+            className="btn-secondary gap-2 relative flex-shrink-0">
+            <SlidersHorizontal size={16} />
+            <span className="hidden sm:inline">All Filters</span>
+            <span className="sm:hidden">Filters</span>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
-        <div className="relative">
-          <select value={sort} onChange={e => setSort(e.target.value)}
-            className="input appearance-none pr-8 cursor-pointer w-full sm:w-44">
-            <option value="-createdAt">Most Recent</option>
-            <option value="-salary.min">Highest Salary</option>
-            <option value="title">A-Z</option>
-          </select>
-          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-        <button onClick={() => setShowFilters(!showFilters)}
-          className="btn-secondary gap-2">
-          <SlidersHorizontal size={16} />All Filters
-        </button>
       </div>
 
-      <div className="flex gap-6">
-        {/* Sidebar Filters */}
-        <aside className="w-52 flex-shrink-0 hidden lg:block">
-          <div className="card-p sticky top-20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Filters</h3>
-              <button onClick={clearAll} className="text-xs text-primary-600 hover:text-primary-700 font-medium">Clear all</button>
+      {/* ── Mobile Filter Drawer ── */}
+      {showFilters && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowFilters(false)}
+          />
+          {/* Slide-up sheet */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-in-up">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+              <h2 className="font-bold text-gray-900">Filter Jobs</h2>
+              <button onClick={() => setShowFilters(false)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} />
+              </button>
             </div>
-
-            {/* Job Type */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Job Type</h4>
-              <div className="space-y-2">
-                {JOB_TYPES.map(t => <FilterCheckbox key={t} label={t} checked={selectedTypes.includes(t)} onChange={() => toggleType(t)} />)}
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Location</h4>
-              <input value={location} onChange={e => setLocation(e.target.value)}
-                placeholder="Search location..." className="input mb-2" />
-              <div className="space-y-2">
-                {LOCATIONS.map(l => <FilterCheckbox key={l} label={l} checked={location === l} onChange={() => setLocation(l === location ? '' : l)} />)}
-              </div>
-            </div>
-
-            {/* Salary */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Stipend (Monthly)</h4>
-              <input type="range" min={0} max={150000} step={5000} value={salary[1]}
-                onChange={e => setSalary([salary[0], Number(e.target.value)])}
-                className="w-full accent-primary-600" />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>₹0</span><span>₹{salary[1].toLocaleString()}+</span>
-              </div>
-            </div>
-
-            {/* Skill Categories */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Skills</h4>
-              <div className="space-y-3">
-                {Object.entries(SKILL_CATEGORIES).map(([category, keywords]) => (
-                  <div key={category}>
-                    <FilterCheckbox
-                      label={category}
-                      checked={selectedSkills.includes(category)}
-                      onChange={() => toggleSkill(category)}
-                    />
-                    {selectedSkills.includes(category) && (
-                      <p className="text-xs text-gray-400 mt-1 ml-6 leading-relaxed">
-                        {keywords.slice(0, 5).join(', ')}{keywords.length > 5 ? ` +${keywords.length - 5} more` : ''}
-                      </p>
-                    )}
-                  </div>
+            {/* Sort (mobile only) */}
+            <div className="px-5 py-3 border-b border-gray-50 flex-shrink-0">
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Sort By</h4>
+              <div className="flex gap-2">
+                {[['Most Recent', '-createdAt'], ['Highest Pay', '-salary.min'], ['A–Z', 'title']].map(([label, val]) => (
+                  <button key={val} onClick={() => setSort(val)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${sort === val ? 'bg-primary-50 border-primary-300 text-primary-700' : 'border-gray-200 text-gray-600'}`}>
+                    {label}
+                  </button>
                 ))}
               </div>
             </div>
-
-            {/* Batch */}
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Batch</h4>
-              <div className="space-y-2">
-                {BATCHES.map(b => <FilterCheckbox key={b} label={b} checked={selectedBatches.includes(b)} onChange={() => toggleBatch(b)} />)}
-              </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <FilterPanelContent {...filterProps} />
             </div>
+            <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0 safe-area-inset-bottom">
+              <button onClick={() => setShowFilters(false)} className="btn-primary w-full">
+                Apply Filters {activeFilterCount > 0 ? `(${activeFilterCount})` : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <button onClick={() => setPage(1)} className="btn-primary w-full mt-2">
-              Show {data?.total || 0} Jobs
-            </button>
+      <div className="flex gap-6">
+        {/* Desktop Sidebar Filters */}
+        <aside className="w-52 flex-shrink-0 hidden lg:block">
+          <div className="card-p sticky top-20">
+            <FilterPanelContent {...filterProps} />
           </div>
         </aside>
 
@@ -178,6 +248,11 @@ const JobListingPage = () => {
           {!isLoading && (
             <p className="text-sm text-gray-600 mb-4 font-medium">
               <span className="font-bold text-gray-900">{data?.total || 0}</span> jobs found
+              {activeFilterCount > 0 && (
+                <button onClick={clearAll} className="ml-2 text-xs text-primary-600 hover:text-primary-700 underline">
+                  Clear filters
+                </button>
+              )}
             </p>
           )}
 

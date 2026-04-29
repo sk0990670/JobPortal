@@ -132,6 +132,20 @@
 }
 
 @layer utilities {
+  /* ── Mobile / Touch Optimizations ── */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Remove blue flash on tap (iOS/Android) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Smooth touch scrolling */
+  .overflow-y-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #e5e7eb transparent;
