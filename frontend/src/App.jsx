@@ -6,8 +6,9 @@ import MainLayout from './layouts/MainLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
+import LandingPage from './pages/LandingPage';
+
 // Lazy-loaded pages
-const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
 const OAuthCallback  = lazy(() => import('./pages/OAuthCallback'));
