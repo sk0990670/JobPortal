@@ -22,6 +22,9 @@ const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
+// Trust proxy for rate limiter to work correctly behind Vercel
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
