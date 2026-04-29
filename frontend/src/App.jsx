@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import MainLayout from './layouts/MainLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -34,46 +35,49 @@ const Loading = () => (
 );
 
 const App = () => (
-  <Suspense fallback={<Loading />}>
-    <Routes>
-      {/* Auth routes (no layout) */}
-      <Route path="/login"          element={<LoginPage />} />
-      <Route path="/signup"         element={<SignUpPage />} />
-      <Route path="/verify-otp"     element={<OTPVerifyPage />} />
-      <Route path="/auth/callback"  element={<OAuthCallback />} />
+  <>
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        {/* Auth routes (no layout) */}
+        <Route path="/login"          element={<LoginPage />} />
+        <Route path="/signup"         element={<SignUpPage />} />
+        <Route path="/verify-otp"     element={<OTPVerifyPage />} />
+        <Route path="/auth/callback"  element={<OAuthCallback />} />
 
-      {/* Public routes */}
-      <Route element={<MainLayout />}>
-        <Route index element={<LandingPage />} />
-        <Route path="/jobs" element={<JobListingPage />} />
-        <Route path="/jobs/:id" element={<JobDetailPage />} />
-        <Route path="/internships" element={<InternshipPage />} />
-        <Route path="/companies" element={<CompaniesPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/post-job" element={<PostJobPage />} />
-      </Route>
-
-      {/* Protected dashboard routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/applications" element={<MyApplications />} />
-          <Route path="/saved-jobs" element={<SavedJobs />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings"    element={<SettingsPage />} />
-          <Route path="/resources"   element={<ResourcesPage />} />
-          {/* ── Admin routes ── */}
-          <Route path="/admin/dashboard"  element={<AdminDashboard />} />
-          <Route path="/admin/jobs"       element={<AdminJobs />} />
-          <Route path="/admin/resources"      element={<AdminResources />} />
-          <Route path="/admin/jobs/:id/edit"  element={<EditJobPage />} />
+        {/* Public routes */}
+        <Route element={<MainLayout />}>
+          <Route index element={<LandingPage />} />
+          <Route path="/jobs" element={<JobListingPage />} />
+          <Route path="/jobs/:id" element={<JobDetailPage />} />
+          <Route path="/internships" element={<InternshipPage />} />
+          <Route path="/companies" element={<CompaniesPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/post-job" element={<PostJobPage />} />
         </Route>
-      </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  </Suspense>
+        {/* Protected dashboard routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/applications" element={<MyApplications />} />
+            <Route path="/saved-jobs" element={<SavedJobs />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings"    element={<SettingsPage />} />
+            <Route path="/resources"   element={<ResourcesPage />} />
+            {/* ── Admin routes ── */}
+            <Route path="/admin/dashboard"  element={<AdminDashboard />} />
+            <Route path="/admin/jobs"       element={<AdminJobs />} />
+            <Route path="/admin/resources"      element={<AdminResources />} />
+            <Route path="/admin/jobs/:id/edit"  element={<EditJobPage />} />
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+    <Analytics />
+  </>
 );
 
 export default App;
