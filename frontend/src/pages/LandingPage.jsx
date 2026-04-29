@@ -167,6 +167,8 @@ const LandingPage = () => {
                 alt="Find your dream job illustration"
                 className="w-full max-w-xl object-contain drop-shadow-xl"
                 style={{ maxHeight: '550px' }}
+                fetchpriority="high"
+                loading="eager"
               />
             </div>
           </div>
