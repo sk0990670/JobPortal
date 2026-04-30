@@ -1,7 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, BriefcaseBusiness, Briefcase, Star, ChevronRight, Building2, TrendingUp, Users, Award, ChevronDown, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import LocomotiveScroll from 'locomotive-scroll';
+
+gsap.registerPlugin(ScrollTrigger);
 import { useSelector } from 'react-redux';
 import { selectUser } from '../store/slices/authSlice';
 import { jobService } from '../services/jobService';
@@ -36,6 +42,40 @@ const LandingPage = () => {
   const handleMenuLeave  = () => { closeTimer.current = setTimeout(() => setJobTypeOpen(false), 400); };
   const handleMenuEnter  = () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
 
+  useEffect(() => {
+    const locomotiveScroll = new LocomotiveScroll();
+    return () => {
+      if (locomotiveScroll) locomotiveScroll.destroy();
+    };
+  }, []);
+
+  useGSAP(() => {
+    // Hero Animations
+    gsap.fromTo('.hero-badge', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+    gsap.fromTo('.hero-title', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1, delay: 0.1, ease: 'power3.out' });
+    gsap.fromTo('.hero-subtitle', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: 'power3.out' });
+    gsap.fromTo('.hero-search', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 1, delay: 0.3, ease: 'power3.out' });
+    gsap.fromTo('.hero-popular', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: 'power3.out' });
+    gsap.fromTo('.hero-illustration-img', 
+      { opacity: 0, scale: 0.9, x: 40 }, 
+      { opacity: 1, scale: 1, x: 0, duration: 1.2, delay: 0.2, ease: 'power3.out' }
+    );
+
+    // Scroll Animations
+    gsap.utils.toArray('.fade-up-section').forEach((section) => {
+      gsap.fromTo(section,
+        { opacity: 0, y: 40 },
+        { 
+          opacity: 1, 
+          y: 0, 
+          duration: 0.8, 
+          ease: 'power3.out',
+          scrollTrigger: { trigger: section, start: 'top 85%' }
+        }
+      );
+    });
+  });
+
   const { data: featuredData } = useQuery({
     queryKey: ['featured-jobs'],
     queryFn: () => jobService.getFeaturedJobs().then(r => r.data),
@@ -64,20 +104,20 @@ const LandingPage = () => {
         <div className="page-container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm text-xs text-gray-600 mb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm text-xs text-gray-600 mb-5 hero-badge">
                 <Star size={12} className="text-yellow-400 fill-yellow-400" />
                 Find the right opportunity
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-4 hero-title">
                 Find Opportunities.<br />
                 Kickstart <span className="text-gradient">Your Career</span>
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8">
+              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 hero-subtitle">
                 Discover internships and entry-level jobs from top companies and build your future.
               </p>
 
               {/* Search Bar */}
-              <form onSubmit={handleSearch} className="mb-5">
+              <form onSubmit={handleSearch} className="mb-8 sm:mb-10 hero-search">
                 {/* Mobile: stacked layout | Desktop: single-row pill */}
                 <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-0">
                   {/* Job title */}
@@ -154,7 +194,7 @@ const LandingPage = () => {
               </form>
 
               {/* Popular searches */}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap hero-popular">
                 <span className="text-sm text-gray-500 font-medium">Popular Searches:</span>
                 {POPULAR_SEARCHES.map(s => (
                   <button key={s} onClick={() => navigate(`/jobs?search=${s}`)}
@@ -167,11 +207,11 @@ const LandingPage = () => {
             </div>
 
             {/* Hero illustration */}
-            <div className="hidden lg:flex items-center justify-center">
+            <div className="hidden lg:flex items-center justify-center hero-illustration">
               <img
                 src={heroIllustration}
                 alt="Find your dream job illustration"
-                className="w-full max-w-xl object-contain drop-shadow-xl"
+                className="w-full max-w-xl object-contain drop-shadow-xl hero-illustration-img"
                 style={{ maxHeight: '550px' }}
                 fetchpriority="high"
                 loading="eager"
@@ -182,7 +222,7 @@ const LandingPage = () => {
       </section>
 
       {/* Stats */}
-      <section className="py-8 bg-white border-b border-gray-100">
+      <section className="py-8 bg-white border-b border-gray-100 fade-up-section">
         <div className="page-container grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard icon={BriefcaseBusiness} color="bg-primary-500" value="10K+" label="Active Jobs" />
           <StatCard icon={Building2} color="bg-green-500" value="500+" label="Top Companies" />
@@ -192,7 +232,7 @@ const LandingPage = () => {
       </section>
 
       {/* Top Companies */}
-      <section className="py-10 bg-white">
+      <section className="py-10 bg-white fade-up-section">
         <div className="page-container">
           <div className="section-header">
             <h2 className="section-title text-xl">Top Companies Hiring</h2>
@@ -218,7 +258,7 @@ const LandingPage = () => {
       </section>
 
       {/* Featured Jobs */}
-      <section className="py-10 bg-gray-50">
+      <section className="py-10 bg-gray-50 fade-up-section">
         <div className="page-container">
           <div className="section-header">
             <h2 className="section-title text-xl">Featured Opportunities</h2>
@@ -234,7 +274,7 @@ const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-10 sm:py-14 bg-gradient-to-r from-primary-600 to-indigo-600">
+      <section className="py-10 sm:py-14 bg-gradient-to-r from-primary-600 to-indigo-600 fade-up-section">
         <div className="page-container text-center text-white">
           <TrendingUp size={40} className="mx-auto mb-4 opacity-80" />
           <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to Kickstart Your Career?</h2>

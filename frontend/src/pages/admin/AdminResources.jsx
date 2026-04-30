@@ -14,6 +14,9 @@ const AdminResources = () => {
   const navigate = useNavigate();
   const user = useSelector(selectUser);
   const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState([]);
   const [deleteId, setDeleteId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null); // holds resource being edited
@@ -30,8 +33,12 @@ const AdminResources = () => {
 
   const createMutation = useMutation({
     mutationFn: async (payload) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/resources`, {
-        method: 'POST',
+      const isUpdating = !!editing;
+      const url = isUpdating ? `${import.meta.env.VITE_API_URL}/resources/${editing._id}` : `${import.meta.env.VITE_API_URL}/resources`;
+      const method = isUpdating ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -78,7 +85,10 @@ const AdminResources = () => {
     createMutation.mutate(form);
   };
 
-  const resources = (data?.data || []).filter(r => r.title?.toLowerCase().includes(search.toLowerCase()));
+  const resources = (data?.data || [])
+    .filter(r => r.title?.toLowerCase().includes(search.toLowerCase()))
+    .filter(r => categoryFilter === 'all' || r.category === categoryFilter)
+    .filter(r => statusFilter === 'all' || (statusFilter === 'published' ? r.isPublished : !r.isPublished));
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -93,10 +103,32 @@ const AdminResources = () => {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…" className="input pl-9 w-full max-w-sm" />
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 mb-6">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search resources…" className="input pl-9 w-full" />
+        </div>
+        
+        <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="input sm:w-48 appearance-none cursor-pointer">
+          <option value="all">All Categories</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input sm:w-40 appearance-none cursor-pointer">
+          <option value="all">All Status</option>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+
+        {selectedIds.length > 0 && (
+          <div className="flex items-center gap-3 bg-primary-50 px-4 py-1.5 rounded-lg border border-primary-100 ml-auto animate-fade-in">
+            <span className="text-sm font-semibold text-primary-700">{selectedIds.length} selected</span>
+            <button className="btn-danger btn-sm whitespace-nowrap px-3 py-1.5" onClick={() => toast.error('Bulk delete in development')}>
+              <Trash2 size={14} className="mr-1.5 inline" /> Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -104,42 +136,60 @@ const AdminResources = () => {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Title</th>
+              <th className="px-4 py-3 w-10">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                  checked={resources.length > 0 && selectedIds.length === resources.length}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedIds(resources.map(r => r._id));
+                    else setSelectedIds([]);
+                  }}
+                />
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-2/5 min-w-[300px]">Title</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Read Time</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Published</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[100px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               Array(4).fill(0).map((_, i) => (
-                <tr key={i}>{Array(6).fill(0).map((_, j) => <td key={j} className="px-4 py-3"><div className="skeleton h-4 rounded" /></td>)}</tr>
+                <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j} className="px-4 py-3"><div className="skeleton h-4 rounded" /></td>)}</tr>
               ))
             ) : resources.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
                   No resources yet. <button onClick={() => setShowForm(true)} className="text-primary-600 font-medium">Add one →</button>
                 </td>
               </tr>
             ) : resources.map(r => (
               <tr key={r._id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-4 py-3">
+                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-400 cursor-pointer"
+                    checked={selectedIds.includes(r._id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedIds(prev => [...prev, r._id]);
+                      else setSelectedIds(prev => prev.filter(id => id !== r._id));
+                    }}
+                  />
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <BookOpen size={14} className="text-primary-400 flex-shrink-0" />
-                    <p className="font-medium text-gray-900 truncate max-w-[200px]">{r.title}</p>
+                    <p className="font-medium text-gray-900 truncate max-w-[400px]">{r.title}</p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px] pl-5">{r.excerpt}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[400px] pl-5">{r.excerpt}</p>
                 </td>
-                <td className="px-4 py-3"><span className="badge-purple text-xs flex items-center gap-1 w-fit"><Tag size={10} />{r.category}</span></td>
-                <td className="px-4 py-3 text-gray-500"><span className="flex items-center gap-1"><Clock size={11} />{r.readTime} min</span></td>
+                <td className="px-4 py-3"><span className="badge-purple text-xs flex items-center gap-1 w-fit whitespace-nowrap"><Tag size={10} className="flex-shrink-0" />{r.category}</span></td>
+                <td className="px-4 py-3 text-gray-500"><span className="flex items-center gap-1 whitespace-nowrap"><Clock size={11} className="flex-shrink-0" />{r.readTime} min</span></td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${r.isPublished ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {r.isPublished ? 'Published' : 'Draft'}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-400 text-xs">{formatRelativeDate(r.createdAt)}</td>
+                <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{formatRelativeDate(r.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => openEdit(r)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"><Edit3 size={15} /></button>

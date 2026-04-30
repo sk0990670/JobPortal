@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { User, Bell, Shield, Lock, Sliders, Link as LinkIcon, Trash2, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { User, Bell, Shield, Lock, Sliders, Link as LinkIcon, Trash2, Edit2, ToggleLeft, ToggleRight, Mail, ClipboardList, Megaphone, Calendar } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectUser, updateUser } from '../store/slices/authSlice';
 import { userService } from '../services/userService';
@@ -60,7 +60,7 @@ const SettingsPage = () => {
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
     values: { fullName: profile?.fullName || '', email: profile?.email || '', phone: profile?.phone || '', location: profile?.location || '' },
   });
-  const { register: regPwd, handleSubmit: handlePwd, formState: { errors: pwdErrors }, reset: resetPwd } = useForm();
+  const { register: regPwd, handleSubmit: handlePwd, formState: { errors: pwdErrors }, reset: resetPwd, watch: watchPwd } = useForm();
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => userService.updateProfile(data),
@@ -103,10 +103,10 @@ const SettingsPage = () => {
   };
 
   const notificationItems = [
-    { key: 'jobAlerts', label: 'Job Alerts', desc: 'Receive email alerts for new jobs matching your preferences.', icon: '📧' },
-    { key: 'applicationUpdates', label: 'Application Updates', desc: 'Get notified about your application status updates.', icon: '📋' },
-    { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive emails about new features, tips and offers.', icon: '📣' },
-    { key: 'weeklySummary', label: 'Weekly Summary', desc: 'Get a weekly summary of relevant jobs and opportunities.', icon: '📅' },
+    { key: 'jobAlerts', label: 'Job Alerts', desc: 'Receive email alerts for new jobs matching your preferences.', icon: Mail },
+    { key: 'applicationUpdates', label: 'Application Updates', desc: 'Get notified about your application status updates.', icon: ClipboardList },
+    { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive emails about new features, tips and offers.', icon: Megaphone },
+    { key: 'weeklySummary', label: 'Weekly Summary', desc: 'Get a weekly summary of relevant jobs and opportunities.', icon: Calendar },
   ];
 
   return (
@@ -125,8 +125,8 @@ const SettingsPage = () => {
                 <button key={id} onClick={() => setActiveTab(id)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-left transition-colors ${
                     activeTab === id ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'
-                  } ${id === 'deactivate' ? 'text-red-500 hover:bg-red-50' : ''}`}>
-                  <Icon size={15} />
+                  }`}>
+                  <Icon size={15} className={id === 'deactivate' ? 'text-red-500' : ''} />
                   <span className="leading-tight">{label}</span>
                 </button>
               ))}
@@ -139,24 +139,26 @@ const SettingsPage = () => {
           {/* Account Settings */}
           {activeTab === 'account' && (
             <div className="card-p">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="font-bold text-gray-900">Account Settings</h2>
                   <p className="text-xs text-gray-500 mt-0.5">Update your personal information and account details.</p>
                 </div>
-                <button onClick={() => setEditingAccount(!editingAccount)} className="btn-secondary btn-sm gap-1.5">
-                  <Edit2 size={13} />{editingAccount ? 'Cancel' : 'Edit'}
-                </button>
+                {!editingAccount && (
+                  <button onClick={() => setEditingAccount(true)} className="btn-secondary btn-sm gap-1.5">
+                    <Edit2 size={13} />Edit
+                  </button>
+                )}
               </div>
               {editingAccount ? (
-                <form onSubmit={handleSubmit(data => updateProfileMutation.mutate(data))} className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit(data => updateProfileMutation.mutate(data))} className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
                   <div>
                     <label className="label">Full Name</label>
                     <input {...register('fullName', { required: true })} className={`input ${errors.fullName ? 'input-error' : ''}`} />
                   </div>
                   <div>
                     <label className="label">Email Address</label>
-                    <input {...register('email')} type="email" className="input" disabled />
+                    <input {...register('email')} type="email" className="input bg-gray-50 text-gray-500 cursor-not-allowed" disabled />
                   </div>
                   <div>
                     <label className="label">Phone Number</label>
@@ -166,23 +168,26 @@ const SettingsPage = () => {
                     <label className="label">Location</label>
                     <input {...register('location')} className="input" />
                   </div>
-                  <div className="col-span-2">
+                  <div className="col-span-1 sm:col-span-2 flex items-center gap-3 pt-2">
+                    <button type="button" onClick={() => { setEditingAccount(false); reset(); }} className="btn-secondary">
+                      Cancel
+                    </button>
                     <button type="submit" disabled={updateProfileMutation.isLoading} className="btn-primary">
                       {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
                     </button>
                   </div>
                 </form>
               ) : (
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 text-sm max-w-2xl">
                   {[
                     { label: 'Full Name', value: profile?.fullName },
                     { label: 'Email Address', value: profile?.email },
                     { label: 'Phone Number', value: profile?.phone || '—' },
                     { label: 'Location', value: profile?.location || '—' },
                   ].map(({ label, value }) => (
-                    <div key={label} className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                      <p className="font-medium text-gray-900">{value}</p>
+                    <div key={label}>
+                      <p className="text-xs text-gray-500 mb-1">{label}</p>
+                      <p className="font-semibold text-gray-900 text-base">{value}</p>
                     </div>
                   ))}
                 </div>
@@ -193,21 +198,20 @@ const SettingsPage = () => {
           {/* Email & Notifications */}
           {activeTab === 'notifications' && (
             <div className="card-p">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="font-bold text-gray-900">Email & Notifications</h2>
-                  <p className="text-xs text-gray-500">Choose what you want to be notified about.</p>
-                </div>
-                <button className="btn-secondary btn-sm"><Edit2 size={13} /> Edit</button>
+              <div className="mb-6">
+                <h2 className="font-bold text-gray-900">Email & Notifications</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Choose what you want to be notified about.</p>
               </div>
               <div className="space-y-4">
-                {notificationItems.map(({ key, label, desc, icon }) => (
+                {notificationItems.map(({ key, label, desc, icon: Icon }) => (
                   <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{icon}</span>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{label}</p>
-                        <p className="text-xs text-gray-500">{desc}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2.5 bg-primary-50 text-primary-600 rounded-full">
+                        <Icon size={18} />
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <p className="font-medium text-gray-900 text-sm leading-tight">{label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 leading-tight">{desc}</p>
                       </div>
                     </div>
                     <Toggle checked={notifications[key]} onChange={() => handleToggle('notifications', key)} />
@@ -224,7 +228,7 @@ const SettingsPage = () => {
                 <h2 className="font-bold text-gray-900 mb-1">Password & Security</h2>
                 <p className="text-xs text-gray-500">Change your password and manage account security.</p>
               </div>
-              <form onSubmit={handlePwd(data => changePasswordMutation.mutate(data))} className="space-y-4 max-w-sm">
+              <form onSubmit={handlePwd(data => changePasswordMutation.mutate(data))} className="max-w-sm flex flex-col gap-4">
                 <div>
                   <label className="label">Current Password</label>
                   <input {...regPwd('currentPassword', { required: 'Required' })} type="password"
@@ -232,20 +236,40 @@ const SettingsPage = () => {
                 </div>
                 <div>
                   <label className="label">New Password</label>
-                  <input {...regPwd('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} type="password"
+                  <input {...regPwd('newPassword', { 
+                    required: 'Required', 
+                    minLength: { value: 8, message: 'Min 8 chars' },
+                    pattern: {
+                      value: /^(?=.*[A-Z])(?=.*[!@#$%^&*_=+-])/,
+                      message: 'Needs 1 uppercase & 1 symbol'
+                    }
+                  })} type="password"
                     placeholder="New password" className={`input ${pwdErrors.newPassword ? 'input-error' : ''}`} />
-                  {pwdErrors.newPassword && <p className="text-xs text-red-500 mt-1">{pwdErrors.newPassword.message}</p>}
+                  {pwdErrors.newPassword ? (
+                    <p className="text-xs text-red-500 mt-1">{pwdErrors.newPassword.message}</p>
+                  ) : (
+                    <p className="text-[11px] text-gray-500 mt-1.5 font-medium">Minimum 8 characters, 1 uppercase, 1 symbol</p>
+                  )}
                 </div>
-                <button type="submit" disabled={changePasswordMutation.isLoading} className="btn-primary">
+                <div>
+                  <label className="label">Confirm New Password</label>
+                  <input {...regPwd('confirmPassword', { 
+                    required: 'Required', 
+                    validate: val => val === watchPwd('newPassword') || 'Passwords do not match' 
+                  })} type="password"
+                    placeholder="Confirm password" className={`input ${pwdErrors.confirmPassword ? 'input-error' : ''}`} />
+                  {pwdErrors.confirmPassword && <p className="text-xs text-red-500 mt-1">{pwdErrors.confirmPassword.message}</p>}
+                </div>
+                <button type="submit" disabled={changePasswordMutation.isLoading} className="btn-primary mt-3">
                   {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
                 </button>
               </form>
               <hr className="border-gray-100" />
-              <div className="flex items-center justify-between">
-                <div>
+              <div className="flex items-center justify-between border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                <div className="flex flex-col gap-1 items-start">
                   <p className="font-medium text-gray-900 text-sm">Two-Factor Authentication</p>
-                  <p className="text-xs text-gray-500">Add an extra layer of security to your account.</p>
-                  <span className={`mt-1 text-xs px-2 py-0.5 rounded-md font-medium ${profile?.settings?.twoFactorAuth ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <p className="text-xs text-gray-500 mb-1">Add an extra layer of security to your account.</p>
+                  <span className={`inline-flex text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-bold ${profile?.settings?.twoFactorAuth ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
                     {profile?.settings?.twoFactorAuth ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
@@ -284,17 +308,20 @@ const SettingsPage = () => {
           {/* Privacy Settings */}
           {activeTab === 'privacy' && (
             <div className="card-p">
-              <h2 className="font-bold text-gray-900 mb-4">Privacy Settings</h2>
-              <div className="space-y-4">
+              <div className="mb-6">
+                <h2 className="font-bold text-gray-900 mb-1">Privacy Settings</h2>
+                <p className="text-xs text-gray-500">Adjusting these settings affects how recruiters can find and contact you on the platform.</p>
+              </div>
+              <div className="space-y-4 max-w-3xl">
                 {[
                   { key: 'profileVisibility', label: 'Profile Visibility', desc: 'Make your profile visible to recruiters and companies.' },
                   { key: 'showEmail', label: 'Show Email', desc: 'Allow recruiters to see your email address.' },
                   { key: 'showPhone', label: 'Show Phone', desc: 'Allow recruiters to see your phone number.' },
                 ].map(({ key, label, desc }) => (
                   <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{label}</p>
-                      <p className="text-xs text-gray-500">{desc}</p>
+                    <div className="flex flex-col justify-center">
+                      <p className="font-medium text-gray-900 text-sm leading-tight">{label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-tight">{desc}</p>
                     </div>
                     <Toggle checked={privacy[key]} onChange={() => handleToggle('privacy', key)} />
                   </div>

@@ -1,16 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock, BriefcaseBusiness, Target, Bookmark, TrendingUp } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, BriefcaseBusiness } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import loginIllustration from '../assets/login-illustration.png';
-
-const FEATURES = [
-  { icon: Target,     color: 'bg-indigo-100 text-indigo-600', title: 'Discover Opportunities',  desc: 'Find internships and entry-level jobs from top companies.' },
-  { icon: Bookmark,   color: 'bg-purple-100 text-purple-600',  title: 'Save & Track',            desc: 'Save jobs and track your applications in one place.' },
-  { icon: TrendingUp, color: 'bg-blue-100 text-blue-600',      title: 'Grow Your Career',        desc: 'Build skills, get noticed and advance your career.' },
-];
 
 const LoginPage = () => {
   const { login } = useAuth();
@@ -40,35 +34,20 @@ const LoginPage = () => {
         {/* Headline */}
         <div className="mb-6 flex-shrink-0">
           <h2 className="text-3xl font-extrabold text-gray-900 leading-tight mb-2">
-            Welcome back to<br />
-            <span className="text-gradient">JobPortal</span>
+            Unlock your next<br />
+            <span className="text-gradient">career move</span>
           </h2>
-          <p className="text-gray-500 text-sm">Find your dream career with thousands of opportunities.</p>
+          <p className="text-gray-500 text-sm">Join thousands of hired professionals finding their dream roles.</p>
         </div>
 
-        {/* Illustration — fills the middle, no overlap */}
+        {/* Illustration — fills the middle, vertically centered */}
         <div className="flex-1 flex items-center justify-center min-h-0 mb-6">
           <img
             src={loginIllustration}
             alt="Job search illustration"
             className="w-full max-w-md object-contain"
-            style={{ maxHeight: '340px' }}
+            style={{ maxHeight: '420px' }}
           />
-        </div>
-
-        {/* Feature bullets — always below the image */}
-        <div className="flex flex-col gap-3 flex-shrink-0">
-          {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-            <div key={title} className="flex items-start gap-3">
-              <span className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={15} />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{title}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -141,21 +120,22 @@ const LoginPage = () => {
             </form>
 
             {/* Divider */}
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-              <div className="relative text-center"><span className="bg-white px-3 text-sm text-gray-400">OR</span></div>
+            <div className="flex items-center gap-4 my-6">
+              <div className="flex-1 border-t border-gray-200"></div>
+              <span className="text-sm text-gray-400 font-medium">OR</span>
+              <div className="flex-1 border-t border-gray-200"></div>
             </div>
 
             {/* Social */}
             <div className="grid grid-cols-2 gap-3">
               <a
                 href="http://localhost:5000/api/auth/google"
-                className="btn-secondary text-sm gap-2 justify-center flex items-center"
+                className="btn-secondary border-gray-300 hover:bg-gray-50 text-sm gap-2 justify-center flex items-center shadow-sm"
               >
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
                 Google
               </a>
-              <button className="btn-secondary text-sm gap-2 justify-center opacity-50 cursor-not-allowed" disabled title="Coming soon">
+              <button className="btn-secondary border-gray-300 hover:bg-gray-50 text-sm gap-2 justify-center flex items-center shadow-sm opacity-50 cursor-not-allowed" disabled title="Coming soon">
                 <img src="https://www.linkedin.com/favicon.ico" alt="LinkedIn" className="w-4 h-4" />
                 LinkedIn
               </button>

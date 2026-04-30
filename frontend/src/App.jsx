@@ -58,7 +58,6 @@ const App = () => (
           <Route path="/internships" element={<InternshipPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/post-job" element={<PostJobPage />} />
         </Route>
 
         {/* Protected dashboard routes */}
@@ -70,6 +69,7 @@ const App = () => (
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/settings"    element={<SettingsPage />} />
             <Route path="/resources"   element={<ResourcesPage />} />
+            <Route path="/post-job" element={<PostJobPage />} />
             {/* ── Admin routes ── */}
             <Route path="/admin/dashboard"  element={<AdminDashboard />} />
             <Route path="/admin/jobs"       element={<AdminJobs />} />

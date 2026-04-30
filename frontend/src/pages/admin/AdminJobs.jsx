@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PlusCircle, Edit3, Trash2, MapPin, Building2, Search, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, MapPin, Building2, Search, AlertTriangle, Users } from 'lucide-react';
 import { jobService } from '../../services/jobService';
 import { formatRelativeDate, getAvatarUrl } from '../../utils/formatters';
 import toast from 'react-hot-toast';
@@ -10,11 +10,19 @@ const AdminJobs = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [deleteId, setDeleteId] = useState(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin-jobs-list', search, page],
-    queryFn: () => jobService.getJobs({ search, page, limit: 10, status: 'all' }).then(r => r.data),
+    queryKey: ['admin-jobs-list', search, page, statusFilter, typeFilter],
+    queryFn: () => jobService.getJobs({ 
+      search, 
+      page, 
+      limit: 10, 
+      status: statusFilter,
+      jobType: typeFilter !== 'all' ? typeFilter : undefined 
+    }).then(r => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -42,15 +50,37 @@ const AdminJobs = () => {
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          value={search}
-          onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search jobs by title..."
-          className="input pl-9 w-full max-w-sm"
-        />
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            placeholder="Search jobs by title..."
+            className="input pl-9 w-full"
+          />
+        </div>
+        <select 
+          value={typeFilter} 
+          onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
+          className="input sm:w-40 appearance-none cursor-pointer"
+        >
+          <option value="all">All Types</option>
+          <option value="Internship">Internship</option>
+          <option value="Full-time">Full-time</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Contract">Contract</option>
+        </select>
+        <select 
+          value={statusFilter} 
+          onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+          className="input sm:w-40 appearance-none cursor-pointer"
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="closed">Inactive</option>
+        </select>
       </div>
 
       {/* Table */}
@@ -58,19 +88,20 @@ const AdminJobs = () => {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Role</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-1/3 min-w-[200px]">Role</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Posted</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Posted</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide min-w-[120px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {isLoading ? (
               Array(5).fill(0).map((_, i) => (
                 <tr key={i}>
-                  {Array(6).fill(0).map((_, j) => (
+                  {Array(7).fill(0).map((_, j) => (
                     <td key={j} className="px-4 py-3"><div className="skeleton h-4 rounded w-full" /></td>
                   ))}
                 </tr>
@@ -91,14 +122,16 @@ const AdminJobs = () => {
                         {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-contain p-0.5" /> : <Building2 size={13} className="text-gray-400" />}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 truncate max-w-[160px]">{job.title}</p>
+                        <p className="font-semibold text-gray-900 truncate max-w-[280px]">{job.title}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{job.companyName || job.company?.name || '—'}</td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <span className="badge-blue text-xs">{job.jobType}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${job.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                  <td className="px-4 py-3">
+                    <span className="badge-blue text-xs whitespace-nowrap">{job.jobType}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${job.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
                       {job.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
@@ -107,13 +140,17 @@ const AdminJobs = () => {
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{formatRelativeDate(job.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link to={`/admin/jobs/${job._id}/applicants`}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Applicants">
+                        <Users size={15} />
+                      </Link>
                       <Link to={`/admin/jobs/${job._id}/edit`}
-                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+                        className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Edit Job">
                         <Edit3 size={15} />
                       </Link>
                       <button onClick={() => setDeleteId(job._id)}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job">
                         <Trash2 size={15} />
                       </button>
                     </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Camera, Edit2, ExternalLink, Upload, Plus, X, CheckCircle, Crop } from 'lucide-react';
+import { Camera, Edit2, ExternalLink, Upload, Plus, X, CheckCircle, Crop, Briefcase, Calendar, MapPin } from 'lucide-react';
 import { userService } from '../services/userService';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectUser, updateUser } from '../store/slices/authSlice';
@@ -178,8 +178,8 @@ const ProfilePage = () => {
                 : <span className="text-2xl font-bold text-primary-700">{getInitials(profile?.fullName)}</span>}
             </div>
             <button onClick={() => avatarInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary-600 rounded-full flex items-center justify-center text-white hover:bg-primary-700 transition-colors shadow-sm">
-              <Camera size={13} />
+              className="absolute bottom-0 right-0 w-8 h-8 bg-primary-600 border-2 border-white rounded-full flex items-center justify-center text-white hover:bg-primary-700 transition-colors shadow-md z-10 translate-x-1/4 translate-y-1/4">
+              <Camera size={14} />
             </button>
             <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
               onChange={handleAvatarFileChange} />
@@ -190,29 +190,27 @@ const ProfilePage = () => {
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{profile?.fullName}</h2>
                 {user?.role !== 'admin' && <p className="text-gray-600">{profile?.headline || 'Add a headline'}</p>}
-                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                  {user?.role !== 'admin' && profile?.location && <span>📍 {profile.location}</span>}
-                  {profile?.email && <span>✉️ {profile.email}</span>}
-                  {profile?.phone && <span>📞 {profile.phone}</span>}
+                <div className="flex items-center gap-5 mt-3 text-sm text-gray-500">
+                  <span className="flex items-center gap-1.5"><Briefcase size={14} className="text-gray-400" /> {user?.role === 'admin' ? 'Administrator' : profile?.experienceLevel || 'Professional'}</span>
+                  {profile?.location && <span className="flex items-center gap-1.5"><MapPin size={14} className="text-gray-400" /> {profile.location}</span>}
+                  <span className="flex items-center gap-1.5"><Calendar size={14} className="text-gray-400" /> Joined {formatDate(profile?.createdAt || user?.createdAt || new Date())}</span>
                 </div>
               </div>
-              <button onClick={isEditing ? handleSave : handleEdit}
-                className={isEditing ? 'btn-primary gap-1.5' : 'btn-secondary gap-1.5'}>
-                <Edit2 size={14} />
-                {isEditing ? (updateMutation.isLoading ? 'Saving...' : 'Save Changes') : 'Edit Profile'}
-              </button>
             </div>
             {/* Meta info */}
             {user?.role !== 'admin' && (
-              <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 text-sm">
                 {[
-                  { label: 'Experience Level', value: profile?.experienceLevel },
-                  { label: 'Current Status', value: profile?.currentStatus },
-                  { label: 'Notice Period', value: profile?.noticePeriod },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-gray-50 rounded-lg p-2.5">
-                    <p className="text-xs text-gray-400">{label}</p>
-                    <p className="font-medium text-gray-900 text-sm mt-0.5">{value || '—'}</p>
+                  { label: 'Experience Level', value: profile?.experienceLevel, icon: Briefcase },
+                  { label: 'Current Status', value: profile?.currentStatus, icon: CheckCircle },
+                  { label: 'Notice Period', value: profile?.noticePeriod, icon: Calendar },
+                ].map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex items-start gap-3">
+                    <div className="mt-0.5"><Icon size={14} className="text-primary-500" /></div>
+                    <div>
+                      <p className="text-xs text-gray-500">{label}</p>
+                      <p className="font-semibold text-gray-900 text-sm mt-0.5">{value || '—'}</p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -252,7 +250,14 @@ const ProfilePage = () => {
         <div className={user?.role === 'admin' ? '' : 'lg:col-span-2'}>
           {activeTab === 'Personal Information' && (
             <div className="card-p">
-              <h3 className="font-semibold text-gray-900 mb-4">Personal Information</h3>
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-semibold text-gray-900">Personal Information</h3>
+                <button onClick={isEditing ? handleSave : handleEdit}
+                  className={isEditing ? 'btn-primary btn-sm gap-1.5' : 'btn-secondary btn-sm gap-1.5'}>
+                  <Edit2 size={14} />
+                  {isEditing ? (updateMutation.isLoading ? 'Saving...' : 'Save') : 'Edit'}
+                </button>
+              </div>
               {isEditing ? (
                 <div className="grid grid-cols-2 gap-4">
                   {[
@@ -294,25 +299,33 @@ const ProfilePage = () => {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {[
-                    { label: 'Full Name', value: profile?.fullName },
-                    { label: 'Phone Number', value: profile?.phone || '—' },
-                    { label: 'Email Address', value: profile?.email },
-                    ...(user?.role !== 'admin' ? [
-                      { label: 'Location', value: profile?.location || '—' },
-                      { label: 'Headline', value: profile?.headline || '—' },
-                    ] : [])
-                  ].map(({ label, value }) => (
-                    <div key={label}>
-                      <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-                      <p className="font-medium text-gray-900">{value}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8 text-sm">
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Full Name</p>
+                    <p className="font-semibold text-gray-900 text-base">{profile?.fullName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Email Address</p>
+                    <p className="font-semibold text-gray-900 text-base">{profile?.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Phone Number</p>
+                    <p className="font-semibold text-gray-900 text-base">{profile?.phone || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Role / Title</p>
+                    <p className="font-semibold text-gray-900 text-base">{user?.role === 'admin' ? 'Administrator' : profile?.headline || '—'}</p>
+                  </div>
+                  {user?.role !== 'admin' && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Location</p>
+                      <p className="font-semibold text-gray-900 text-base">{profile?.location || '—'}</p>
                     </div>
-                  ))}
+                  )}
                   {user?.role !== 'admin' && profile?.summary && (
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-400 mb-0.5">Summary</p>
-                      <p className="text-gray-700 leading-relaxed">{profile.summary}</p>
+                    <div className="col-span-1 sm:col-span-2">
+                      <p className="text-xs text-gray-500 mb-1">Summary</p>
+                      <p className="font-medium text-gray-800 leading-relaxed text-base">{profile.summary}</p>
                     </div>
                   )}
                 </div>
@@ -450,8 +463,10 @@ const ProfilePage = () => {
                         placeholder={`${label} URL`} className="input text-xs py-1" />
                     ) : profile?.profiles?.[key] ? (
                       <a href={profile.profiles[key]} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-primary-600 hover:underline truncate block">
-                        {profile.profiles[key]}
+                        className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors truncate block">
+                        {(key === 'linkedin' || key === 'github') 
+                          ? profile.profiles[key].split('/').filter(Boolean).pop() 
+                          : `View ${label}`}
                       </a>
                     ) : (
                       <span className="text-sm text-gray-400">Not added</span>
@@ -459,29 +474,6 @@ const ProfilePage = () => {
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* Account Status */}
-            <div className="card-p">
-              <h3 className="font-semibold text-gray-900 mb-3">Account Status</h3>
-              {(() => {
-                const pct   = profile?.profileCompletion || 0;
-                const label = pct >= 80 ? 'Strong' : pct >= 50 ? 'Medium' : 'Weak';
-                const color = pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-orange-500' : 'text-red-500';
-                const barColor = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-orange-400' : 'bg-red-400';
-                return (
-                  <>
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle size={16} className={color} />
-                      <p className={`text-sm font-medium ${color}`}>Profile Strength: {label}</p>
-                    </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full mb-1">
-                      <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <p className="text-xs text-gray-400">{pct}% complete</p>
-                  </>
-                );
-              })()}
             </div>
           </div>
         )}

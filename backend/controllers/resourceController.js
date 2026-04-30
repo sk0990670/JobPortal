@@ -18,7 +18,7 @@ const getResources = asyncHandler(async (req, res) => {
 
   const skip = (Number(page) - 1) * Number(limit);
   const [resources, total] = await Promise.all([
-    Resource.find(filter).sort(sort).skip(skip).limit(Number(limit)).select('-content -__v'),
+    Resource.find(filter).sort(sort).skip(skip).limit(Number(limit)).select('-__v'),
     Resource.countDocuments(filter),
   ]);
 
@@ -47,7 +47,7 @@ const getResourceById = asyncHandler(async (req, res) => {
 // @access  Public
 const getFeaturedResources = asyncHandler(async (req, res) => {
   const resources = await Resource.find({ isPublished: true, isFeatured: true })
-    .sort('-createdAt').limit(4).select('-content -__v');
+    .sort('-createdAt').limit(4).select('-__v');
   res.json({ success: true, count: resources.length, data: resources });
 });
 
@@ -59,6 +59,24 @@ const createResource = asyncHandler(async (req, res) => {
   // Fire-and-forget: email all subscribers (non-blocking)
   notifySubscribers(resource).catch(e => console.error('Notify error:', e.message));
   res.status(201).json({ success: true, message: 'Resource created.', data: resource });
+});
+
+// @desc    Update resource
+// @route   PUT /api/resources/:id
+// @access  Private (admin)
+const updateResource = asyncHandler(async (req, res) => {
+  const resource = await Resource.findById(req.params.id);
+  if (!resource) {
+    res.status(404);
+    throw new Error('Resource not found.');
+  }
+
+  Object.keys(req.body).forEach(key => {
+    resource[key] = req.body[key];
+  });
+
+  await resource.save();
+  res.json({ success: true, message: 'Resource updated.', data: resource });
 });
 
 // @desc    Toggle bookmark resource
@@ -79,4 +97,4 @@ const toggleBookmark = asyncHandler(async (req, res) => {
   res.json({ success: true, isBookmarked: !isBookmarked, message: isBookmarked ? 'Bookmark removed.' : 'Resource bookmarked.' });
 });
 
-module.exports = { getResources, getResourceById, getFeaturedResources, createResource, toggleBookmark };
+module.exports = { getResources, getResourceById, getFeaturedResources, createResource, updateResource, toggleBookmark };

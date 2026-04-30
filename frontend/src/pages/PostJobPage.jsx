@@ -90,50 +90,21 @@ const PostJobPage = () => {
         <p className="text-sm text-gray-500 mb-6">Fill in the details to post a job and connect with the right candidates.</p>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-6 items-start">
             {/* Main Form */}
-            <div className="lg:col-span-2 space-y-5">
+            <div className="lg:col-span-2 space-y-8">
               {/* Company Information */}
               <div className="card-p">
                 <h2 className="font-bold text-gray-900 mb-4">Company Information</h2>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="label">Company Name *</label>
-                    <input {...register('companyName', { required: 'Company name is required' })}
-                      placeholder="Enter company name"
-                      className={`input ${errors.companyName ? 'input-error' : ''}`} />
-                    {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
-                  </div>
-
-                  {/* Logo Upload */}
-                  <div>
-                    <label className="label">Upload Company Logo *</label>
-                    <div
-                      onClick={() => logoRef.current?.click()}
-                      className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center cursor-pointer hover:border-primary-300 hover:bg-primary-50 transition-all flex flex-col items-center justify-center min-h-[80px]"
-                    >
-                      {logoPreview ? (
-                        <div className="relative">
-                          <img src={logoPreview} alt="Logo preview" className="h-12 w-12 object-contain rounded" />
-                          <button type="button" onClick={e => { e.stopPropagation(); setLogoFile(null); setLogoPreview(null); setLogoUrl(''); }}
-                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white">
-                            <X size={10} />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <Upload size={20} className="text-gray-300 mb-1" />
-                          <p className="text-xs text-gray-500">Click to upload or drag and drop</p>
-                          <p className="text-xs text-gray-400">PNG, JPG, SVG (Max. 2MB)</p>
-                        </>
-                      )}
-                    </div>
-                    <input ref={logoRef} type="file" accept="image/*" className="hidden"
-                      onChange={e => { if (e.target.files[0]) handleLogoUpload(e.target.files[0]); }} />
-                  </div>
+                <div className="mb-4">
+                  <label className="label">Company Name <span className="text-red-500">*</span></label>
+                  <input {...register('companyName', { required: 'Company name is required' })}
+                    placeholder="Enter company name"
+                    className={`input ${errors.companyName ? 'input-error' : ''}`} />
+                  {errors.companyName && <p className="text-xs text-red-500 mt-1">{errors.companyName.message}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="label">Company Website</label>
                     <input {...register('companyWebsite')} placeholder="https://www.example.com" className="input" />
@@ -143,6 +114,32 @@ const PostJobPage = () => {
                     <input {...register('companyLocation')} placeholder="Enter company location" className="input" />
                   </div>
                 </div>
+
+                <div>
+                  <label className="label">Upload Company Logo <span className="text-red-500">*</span></label>
+                  <div
+                    onClick={() => logoRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary-300 hover:bg-primary-50 transition-all flex flex-col items-center justify-center min-h-[120px]"
+                  >
+                    {logoPreview ? (
+                      <div className="relative">
+                        <img src={logoPreview} alt="Logo preview" className="h-16 w-16 object-contain rounded" />
+                        <button type="button" onClick={e => { e.stopPropagation(); setLogoFile(null); setLogoPreview(null); setLogoUrl(''); }}
+                          className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white">
+                          <X size={10} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload size={24} className="text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600 font-medium">Click to upload or drag and drop</p>
+                        <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG (Max. 2MB)</p>
+                      </>
+                    )}
+                  </div>
+                  <input ref={logoRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => { if (e.target.files[0]) handleLogoUpload(e.target.files[0]); }} />
+                </div>
               </div>
 
               {/* Job Information */}
@@ -150,37 +147,37 @@ const PostJobPage = () => {
                 <h2 className="font-bold text-gray-900 mb-4">Job Information</h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="label">Role *</label>
+                    <label className="label">Role <span className="text-red-500">*</span></label>
                     <input {...register('title', { required: 'Role is required' })}
                       placeholder="e.g. AI/ML Intern, Full Stack Developer"
                       className={`input ${errors.title ? 'input-error' : ''}`} />
                     {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Employment Type *</label>
+                      <label className="label">Employment Type <span className="text-red-500">*</span></label>
                       <select {...register('jobType', { required: true })} className="input">
                         {['Full-time', 'Part-time', 'Internship', 'Contract', 'Remote'].map(t => <option key={t}>{t}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="label">Experience Level *</label>
+                      <label className="label">Experience Level <span className="text-red-500">*</span></label>
                       <select {...register('experienceLevel')} className="input">
                         {['Fresher', 'Junior', 'Mid-level', 'Senior', 'Lead'].map(l => <option key={l}>{l}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="label">Job Function *</label>
-                      <select {...register('jobFunction')} className="input">
-                        {['Software Engineering', 'Data Science', 'Product Management', 'Design', 'Marketing', 'Analytics', 'Machine Learning', 'DevOps', 'Other'].map(f => <option key={f}>{f}</option>)}
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Work Mode *</label>
+                      <label className="label">Job Function <span className="text-red-500">*</span></label>
+                      <select {...register('jobFunction')} className="input">
+                        {['Software Engineering', 'Data Science', 'Product Management', 'Design', 'Marketing', 'Analytics', 'Machine Learning', 'DevOps', 'Other'].map(f => <option key={f}>{f}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="label">Work Mode <span className="text-red-500">*</span></label>
                       <div className="flex gap-3 mt-1">
                         {['On-site', 'Remote', 'Hybrid'].map(mode => (
                           <label key={mode} className="flex items-center gap-1.5 cursor-pointer">
@@ -191,20 +188,6 @@ const PostJobPage = () => {
                         ))}
                       </div>
                       {errors.workMode && <p className="text-xs text-red-500 mt-1">{errors.workMode.message}</p>}
-                    </div>
-                    <div>
-                      <label className="label">Status *</label>
-                      <div className="flex gap-3 mt-1">
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status', { required: 'Status is required' })} value="active" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
-                          <span className="text-sm text-gray-700">Active</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status', { required: 'Status is required' })} value="closed" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
-                          <span className="text-sm text-gray-700">Inactive</span>
-                        </label>
-                      </div>
-                      {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status.message}</p>}
                     </div>
                   </div>
 
@@ -242,7 +225,7 @@ const PostJobPage = () => {
                   {/* Job Description */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="label mb-0">Job Description *</label>
+                      <label className="label mb-0">Job Description <span className="text-red-500">*</span></label>
                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded font-mono">Ctrl+B = <b>bold</b></span>
                     </div>
                     <textarea
@@ -256,14 +239,30 @@ const PostJobPage = () => {
                     {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
                   </div>
 
-                  <div>
-                    <label className="label">Batch</label>
-                    <input {...register('batch')} placeholder="2025/2026" className="input" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">Status <span className="text-red-500">*</span></label>
+                      <div className="flex gap-3 mt-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="active" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
+                          <span className="text-sm text-gray-700">Active</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="closed" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
+                          <span className="text-sm text-gray-700">Inactive</span>
+                        </label>
+                      </div>
+                      {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status.message}</p>}
+                    </div>
+                    <div>
+                      <label className="label">Batch</label>
+                      <input {...register('batch')} placeholder="2025/2026" className="input" />
+                    </div>
                   </div>
 
                   <div>
                     <label className="label">Posting Date</label>
-                    <input {...register('postedDate')} type="date" className="input" />
+                    <input {...register('postedDate')} type="date" className="input lg:w-1/2 pr-4" />
                   </div>
 
                   {/* ── How to Apply ── */}

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, ChevronDown, MapPin } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { jobService } from '../services/jobService';
 import JobCard from '../components/common/JobCard';
 import Pagination from '../components/common/Pagination';
@@ -40,77 +42,103 @@ const FilterPanelContent = ({
   salary, setSalary,
   selectedSkills, toggleSkill,
   selectedBatches, toggleBatch,
-  data, setPage, clearAll
-}) => (
-  <>
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-semibold text-gray-900">Filters</h3>
-      <button onClick={clearAll} className="text-xs text-primary-600 hover:text-primary-700 font-medium">Clear all</button>
-    </div>
+  data, setPage, clearAll,
+  isFullTime, maxRange
+}) => {
+  const [skillSearch, setSkillSearch] = useState('');
+  const [locSearch, setLocSearch] = useState('');
 
-    {/* Job Type */}
-    <div className="mb-5">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Job Type</h4>
-      <div className="space-y-2">
-        {JOB_TYPES.map(t => <FilterCheckbox key={t} label={t} checked={selectedTypes.includes(t)} onChange={() => toggleType(t)} />)}
+  const step = isFullTime ? 100000 : 5000;
+  const label = isFullTime ? 'Salary (Yearly)' : 'Stipend (Monthly)';
+  const formatAmount = (v) => isFullTime ? `₹${(v / 100000).toFixed(0)}L` : `₹${(v / 1000).toFixed(0)}K`;
+
+  const filteredLocations = LOCATIONS.filter(l => l.toLowerCase().includes(locSearch.toLowerCase()));
+  const filteredSkills = Object.entries(SKILL_CATEGORIES).filter(([cat]) => cat.toLowerCase().includes(skillSearch.toLowerCase()));
+
+  // Reset salary when switching mode to avoid out of bounds
+  useEffect(() => {
+    if (salary[1] > maxRange) setSalary([0, maxRange]);
+  }, [isFullTime, maxRange, salary, setSalary]);
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-gray-900">Filters</h3>
+        <button onClick={clearAll} className="text-xs text-primary-600 hover:text-primary-700 font-medium">Clear all</button>
       </div>
-    </div>
 
-    {/* Location */}
-    <div className="mb-5">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Location</h4>
-      <input value={location} onChange={e => setLocation(e.target.value)}
-        placeholder="Search location..." className="input mb-2" />
-      <div className="space-y-2">
-        {LOCATIONS.map(l => <FilterCheckbox key={l} label={l} checked={location === l} onChange={() => setLocation(l === location ? '' : l)} />)}
+      {/* Job Type */}
+      <div className="mb-5">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Job Type</h4>
+        <div className="space-y-2">
+          {JOB_TYPES.map(t => <FilterCheckbox key={t} label={t} checked={selectedTypes.includes(t)} onChange={() => toggleType(t)} />)}
+        </div>
       </div>
-    </div>
 
-    {/* Salary */}
-    <div className="mb-5">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Stipend (Monthly)</h4>
-      <input type="range" min={0} max={150000} step={5000} value={salary[1]}
-        onChange={e => setSalary([salary[0], Number(e.target.value)])}
-        className="w-full accent-primary-600" />
-      <div className="flex justify-between text-xs text-gray-500 mt-1">
-        <span>₹0</span><span>₹{salary[1].toLocaleString()}+</span>
+      {/* Location */}
+      <div className="mb-5">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Location</h4>
+        <div className="relative mb-2">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={locSearch} onChange={e => setLocSearch(e.target.value)}
+            placeholder="Find location..." className="input pl-8 py-1.5 text-xs" />
+        </div>
+        <div className="space-y-2 max-h-40 overflow-y-auto scrollbar-thin">
+          {filteredLocations.map(l => <FilterCheckbox key={l} label={l} checked={location === l} onChange={() => setLocation(l === location ? '' : l)} />)}
+        </div>
       </div>
-    </div>
 
-    {/* Skill Categories */}
-    <div className="mb-5">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Skills</h4>
-      <div className="space-y-3">
-        {Object.entries(SKILL_CATEGORIES).map(([category, keywords]) => (
-          <div key={category}>
-            <FilterCheckbox
-              label={category}
-              checked={selectedSkills.includes(category)}
-              onChange={() => toggleSkill(category)}
-            />
-            {selectedSkills.includes(category) && (
-              <p className="text-xs text-gray-400 mt-1 ml-6 leading-relaxed">
-                {keywords.slice(0, 5).join(', ')}{keywords.length > 5 ? ` +${keywords.length - 5} more` : ''}
-              </p>
-            )}
-          </div>
-        ))}
+      {/* Salary */}
+      <div className="mb-5">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">{label}</h4>
+        <input type="range" min={0} max={maxRange} step={step} value={salary[1]}
+          onChange={e => setSalary([salary[0], Number(e.target.value)])}
+          className="w-full accent-primary-600" />
+        <div className="flex justify-between text-xs text-gray-500 mt-1">
+          <span>₹0</span><span>{formatAmount(salary[1])}+</span>
+        </div>
       </div>
-    </div>
 
-    {/* Batch */}
-    <div className="mb-5">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Batch</h4>
-      <div className="space-y-2">
-        {BATCHES.map(b => <FilterCheckbox key={b} label={b} checked={selectedBatches.includes(b)} onChange={() => toggleBatch(b)} />)}
+      {/* Skill Categories */}
+      <div className="mb-5">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Skills</h4>
+        <div className="relative mb-2">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={skillSearch} onChange={e => setSkillSearch(e.target.value)}
+            placeholder="Search skills..." className="input pl-8 py-1.5 text-xs" />
+        </div>
+        <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-thin pr-2">
+          {filteredSkills.map(([category, keywords]) => (
+            <div key={category}>
+              <FilterCheckbox
+                label={category}
+                checked={selectedSkills.includes(category)}
+                onChange={() => toggleSkill(category)}
+              />
+              {selectedSkills.includes(category) && (
+                <p className="text-xs text-gray-400 mt-1 ml-6 leading-relaxed">
+                  {keywords.slice(0, 5).join(', ')}{keywords.length > 5 ? ` +${keywords.length - 5} more` : ''}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
 
-    <button onClick={() => setPage(1)} className="btn-primary w-full mt-2">
-      Show {data?.total || 0} Jobs
-    </button>
-  </>
-);
+      {/* Batch */}
+      <div className="mb-5">
+        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Batch</h4>
+        <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-thin">
+          {BATCHES.map(b => <FilterCheckbox key={b} label={b} checked={selectedBatches.includes(b)} onChange={() => toggleBatch(b)} />)}
+        </div>
+      </div>
+
+      <button onClick={() => setPage(1)} className="btn-primary w-full mt-2">
+        Show {data?.total || 0} Jobs
+      </button>
+    </>
+  );
+};
 
 const JobListingPage = () => {
   const [searchParams] = useSearchParams();
@@ -127,13 +155,16 @@ const JobListingPage = () => {
   // Expand selected categories into their full keyword lists
   const expandedKeywords = selectedSkills.flatMap(cat => SKILL_CATEGORIES[cat] ?? []);
 
+  const isFullTime = selectedTypes.includes('Full-time');
+  const maxRange = isFullTime ? 5000000 : 150000;
+
   const queryParams = {
     search, location, sort, page, limit: 10,
     ...(selectedTypes.length && { jobType: selectedTypes.join(',') }),
     ...(expandedKeywords.length && { skills: expandedKeywords.join(',') }),
     ...(selectedBatches.length && { batch: selectedBatches.join(',') }),
     ...(salary[0] > 0 && { minSalary: salary[0] }),
-    ...(salary[1] < 150000 && { maxSalary: salary[1] }),
+    ...(salary[1] < maxRange && { maxSalary: salary[1] }),
   };
 
   const { data, isLoading, error } = useQuery({
@@ -150,26 +181,37 @@ const JobListingPage = () => {
 
   const activeFilterCount =
     selectedTypes.length + selectedSkills.length + selectedBatches.length +
-    (salary[1] < 150000 ? 1 : 0) + (location ? 1 : 0);
+    (salary[1] < maxRange ? 1 : 0) + (location ? 1 : 0);
 
-  const filterProps = { selectedTypes, toggleType, location, setLocation, salary, setSalary, selectedSkills, toggleSkill, selectedBatches, toggleBatch, data, setPage, clearAll };
+  const filterProps = { selectedTypes, toggleType, location, setLocation, salary, setSalary, selectedSkills, toggleSkill, selectedBatches, toggleBatch, data, setPage, clearAll, isFullTime, maxRange };
+
+  const containerRef = useRef(null);
+
+  useGSAP(() => {
+    if (data?.data?.length && !isLoading) {
+      gsap.fromTo('.job-card-anim', 
+        { opacity: 0, y: 15 }, 
+        { opacity: 1, y: 0, duration: 0.35, stagger: 0.04, ease: 'power2.out' }
+      );
+    }
+  }, [data?.data, isLoading]);
 
   return (
     <div className="page-container py-4 sm:py-6 animate-fade-in">
       {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex-1 flex items-center gap-2 input">
+        <div className="flex-1 flex items-center gap-2 input py-2">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
           <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search by title, role or keyword"
-            className="flex-1 outline-none text-sm bg-transparent" />
+            className="flex-1 outline-none text-sm bg-transparent py-0 leading-none h-full" />
         </div>
         <div className="flex gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 input flex-1 sm:w-56">
-            <span className="text-gray-400">📍</span>
+          <div className="flex items-center gap-2 input flex-1 sm:w-56 py-2">
+            <MapPin size={16} className="text-gray-400 flex-shrink-0" />
             <input value={location} onChange={e => { setLocation(e.target.value); setPage(1); }}
               placeholder="Location"
-              className="flex-1 outline-none text-sm bg-transparent" />
+              className="flex-1 outline-none text-sm bg-transparent py-0 leading-none h-full" />
           </div>
           {/* Sort — hidden on mobile (available inside filter drawer) */}
           <div className="relative hidden sm:block">
@@ -281,8 +323,12 @@ const JobListingPage = () => {
               <button onClick={clearAll} className="btn-primary mt-4">Clear Filters</button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {data?.data?.map(job => <JobCard key={job._id} job={job} />)}
+            <div className="space-y-3" ref={containerRef} key={data?.data?.map(j=>j._id).join(',') || 'empty'}>
+              {data?.data?.map(job => (
+                <div className="job-card-anim opacity-0" key={job._id}>
+                  <JobCard job={job} />
+                </div>
+              ))}
             </div>
           )}
 

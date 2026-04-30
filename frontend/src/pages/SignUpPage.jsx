@@ -5,7 +5,7 @@ import { Eye, EyeOff, Mail, Lock, User, BriefcaseBusiness, Target, Bookmark, Tre
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { authService } from '../services/authService';
-import loginIllustration from '../assets/login-illustration.png';
+import heroIllustration from '../assets/hero-illustration.png';
 
 /* ── Feature bullets ── */
 const FEATURES = [
@@ -242,7 +242,7 @@ const SignUpPage = () => {
           <p className="text-gray-500 text-sm">Join thousands of students finding the right opportunities.</p>
         </div>
         <div className="flex-1 flex items-center justify-center min-h-0 mb-6">
-          <img src={loginIllustration} alt="Career illustration" className="w-full max-w-md object-contain" style={{ maxHeight: '300px' }} />
+          <img src={heroIllustration} alt="Career illustration" className="w-full max-w-md object-contain" style={{ maxHeight: '300px' }} />
         </div>
         <div className="flex flex-col gap-3 flex-shrink-0">
           {FEATURES.map(({ icon: Icon, color, title, desc }) => (
@@ -279,7 +279,7 @@ const SignUpPage = () => {
               <div>
                 <label className="label">Full Name</label>
                 <div className="relative">
-                  <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
                   <input {...register('fullName', { required: 'Full name is required', minLength: { value: 2, message: 'Name too short' } })}
                     placeholder="Enter your full name"
                     className={`input pl-10 ${errors.fullName ? 'input-error' : ''}`} />
@@ -291,7 +291,7 @@ const SignUpPage = () => {
               <div>
                 <label className="label">Email Address</label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
                   <input {...register('email', { required: 'Email is required', pattern: { value: /^\S+@\S+$/, message: 'Invalid email' } })}
                     type="email" placeholder="Enter your email address"
                     className={`input pl-10 ${errors.email ? 'input-error' : ''}`} />
@@ -303,7 +303,7 @@ const SignUpPage = () => {
               <div>
                 <label className="label">Password</label>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
                   <input {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })}
                     type={showPass ? 'text' : 'password'} placeholder="Create a password"
                     className={`input pl-10 pr-10 ${errors.password ? 'input-error' : ''}`} />
@@ -319,7 +319,7 @@ const SignUpPage = () => {
               <div>
                 <label className="label">Confirm Password</label>
                 <div className="relative">
-                  <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
                   <input {...register('confirmPassword', {
                     required: 'Please confirm your password',
                     validate: val => val === password || 'Passwords do not match',
@@ -344,7 +344,7 @@ const SignUpPage = () => {
                     I agree to the{' '}
                     <button
                       type="button"
-                      onClick={() => setModal('terms')}
+                      onClick={(e) => { e.preventDefault(); setModal('terms'); }}
                       className="text-primary-600 hover:underline font-medium"
                     >
                       Terms of Service
@@ -352,7 +352,7 @@ const SignUpPage = () => {
                     {' '}and{' '}
                     <button
                       type="button"
-                      onClick={() => setModal('privacy')}
+                      onClick={(e) => { e.preventDefault(); setModal('privacy'); }}
                       className="text-primary-600 hover:underline font-medium"
                     >
                       Privacy Policy
@@ -368,23 +368,24 @@ const SignUpPage = () => {
             </form>
 
             {/* Divider */}
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-              <div className="relative text-center"><span className="bg-white px-3 text-sm text-gray-400">OR</span></div>
+            <div className="flex items-center gap-4 my-6">
+              <div className="flex-1 border-t border-gray-200"></div>
+              <span className="text-sm text-gray-400 font-medium">OR</span>
+              <div className="flex-1 border-t border-gray-200"></div>
             </div>
 
             {/* Social */}
             <div className="grid grid-cols-2 gap-3">
               <a
                 href="http://localhost:5000/api/auth/google"
-                className="btn-secondary text-sm gap-2 justify-center flex items-center"
+                className="btn-secondary border-gray-300 hover:bg-gray-50 text-sm gap-2 justify-center flex items-center shadow-sm"
               >
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
-                Sign up with Google
+                Google
               </a>
-              <button className="btn-secondary text-sm gap-2 justify-center opacity-50 cursor-not-allowed" disabled title="Coming soon">
+              <button className="btn-secondary border-gray-300 hover:bg-gray-50 text-sm gap-2 justify-center flex items-center shadow-sm opacity-50 cursor-not-allowed" disabled title="Coming soon">
                 <img src="https://www.linkedin.com/favicon.ico" alt="LinkedIn" className="w-4 h-4" />
-                Sign up with LinkedIn
+                LinkedIn
               </button>
             </div>
 

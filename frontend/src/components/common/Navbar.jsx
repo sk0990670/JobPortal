@@ -122,7 +122,7 @@ const Navbar = () => {
             </div>
 
             {/* Right side */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 md:ml-4 lg:ml-8">
               {isAuthenticated ? (
                 <>
                   {/* Admin: Post Job button — desktop only */}
@@ -212,7 +212,7 @@ const Navbar = () => {
                   >
                     <button
                       onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center gap-1 pl-2 pr-1 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
                         {user?.avatar ? (
@@ -221,11 +221,11 @@ const Navbar = () => {
                           <span className="text-xs font-semibold text-primary-700">{getInitials(user?.fullName)}</span>
                         )}
                       </div>
-                      <div className="text-left">
+                      <div className="text-left ml-1">
                         <p className="text-sm font-medium text-gray-900 leading-tight">{user?.fullName}</p>
                         <p className="text-xs text-gray-500">View Profile</p>
                       </div>
-                      <ChevronDown size={14} className="text-gray-400" />
+                      <ChevronDown size={14} className="text-gray-400 ml-0.5" />
                     </button>
 
                     {dropdownOpen && (

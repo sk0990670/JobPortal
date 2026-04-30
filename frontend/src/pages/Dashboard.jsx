@@ -1,28 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { userService } from '../services/userService';
-import { Briefcase, Users, Calendar, Bookmark, ArrowUp, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { jobService } from '../services/jobService';
+import { Briefcase, Users, Calendar, Bookmark, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { formatSalary, formatLocation, formatRelativeDate, getAvatarUrl, getStatusColor } from '../utils/formatters';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../store/slices/authSlice';
 
-/* ── Stat card — disabled ones are greyed out ── */
-const StatCard = ({ icon: Icon, color, value, label, delta, disabled }) => (
-  <div className={`card-p flex items-center gap-4 ${disabled ? 'opacity-50 cursor-not-allowed select-none' : ''}`}>
-    <div className={`w-12 h-12 rounded-xl ${disabled ? 'bg-gray-300' : color} flex items-center justify-center`}>
-      <Icon size={20} className="text-white" />
+const StatCard = ({ to, icon: Icon, color, value, label, disabled }) => (
+  <Link to={disabled ? '#' : to} className={`card-p flex items-center gap-4 relative transition-all duration-200 ${disabled ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5 hover:shadow-md'}`}>
+    {disabled && (
+      <span className="absolute top-3 right-3 bg-yellow-100 text-yellow-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+        Coming Soon
+      </span>
+    )}
+    <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${disabled ? 'bg-gray-100' : color}`}>
+      <Icon size={20} className={disabled ? 'text-gray-400' : 'text-white'} />
     </div>
     <div>
-      <p className="text-2xl font-bold text-gray-900">{disabled ? '—' : value}</p>
-      <p className="text-sm text-gray-500">{label}</p>
-      {!disabled && delta && (
-        <p className="text-xs text-green-600 font-medium flex items-center gap-0.5 mt-0.5">
-          <ArrowUp size={10} />{delta}
-        </p>
-      )}
-      {disabled && <p className="text-xs text-gray-400 mt-0.5">Coming soon</p>}
+      <p className={`text-2xl font-bold ${disabled ? 'text-gray-400' : 'text-gray-900'}`}>{disabled ? '—' : value}</p>
+      <p className="text-sm text-gray-500 font-medium">{label}</p>
     </div>
-  </div>
+  </Link>
 );
 
 const Dashboard = () => {
@@ -34,25 +33,28 @@ const Dashboard = () => {
     staleTime: 2 * 60 * 1000,
   });
 
+  const { data: jobsData } = useQuery({
+    queryKey: ['recommendedJobs'],
+    queryFn: () => jobService.getJobs().then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const stats        = data?.data?.stats || {};
   const applications = data?.data?.recentApplications || [];
+  
+  // Filter out applied jobs from recommendations
+  const appliedJobIds = new Set(applications.map(app => app.job?._id));
+  const recommendedJobs = (jobsData?.data || []).filter(job => !appliedJobIds.has(job._id)).slice(0, 3);
 
   return (
     <div className="animate-fade-in space-y-6 max-w-7xl">
 
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="bg-gradient-to-r from-primary-50 to-indigo-50/50 rounded-2xl p-6 border border-primary-100/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back, {user?.fullName?.split(' ')[0]}! 👋</h1>
-          <p className="text-gray-500 mt-0.5">Track your progress and find the right opportunities for you.</p>
+          <p className="text-gray-600 mt-1">Track your progress and find the right opportunities for you.</p>
         </div>
-        {user?.profileCompletion < 100 && (
-          <div className="card-p text-sm max-w-xs">
-            <p className="font-semibold text-gray-900 mb-1">Your Profile is {user?.profileCompletion}% complete</p>
-            <p className="text-gray-500 text-xs mb-2">Add skills, projects and experience to improve your profile.</p>
-            <Link to="/profile" className="btn-primary btn-sm">Improve Now</Link>
-          </div>
-        )}
       </div>
 
       {/* Stats Grid */}
@@ -62,10 +64,10 @@ const Dashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Briefcase} color="bg-primary-500" value={stats.totalApplications || 0} label="Applications" delta={stats.totalApplications > 0 ? `${stats.totalApplications} total` : null} />
-          <StatCard icon={Users}     color="bg-green-500"  value={0}                    label="Shortlisted" disabled />
-          <StatCard icon={Calendar}  color="bg-orange-400" value={0}                    label="Interviews"  disabled />
-          <StatCard icon={Bookmark}  color="bg-blue-500"   value={stats.savedJobs || 0} label="Saved Jobs"  delta={stats.savedJobs > 0 ? `${stats.savedJobs} saved` : null} />
+          <StatCard to="/applications" icon={Briefcase} color="bg-primary-500" value={stats.totalApplications || 0} label="Applications" />
+          <StatCard to="#" icon={Users} color="bg-green-500" value={0} label="Shortlisted" disabled />
+          <StatCard to="#" icon={Calendar} color="bg-orange-400" value={0} label="Interviews" disabled />
+          <StatCard to="/saved-jobs" icon={Bookmark} color="bg-blue-500" value={stats.savedJobs || 0} label="Saved Jobs" />
         </div>
       )}
 
@@ -78,33 +80,30 @@ const Dashboard = () => {
             <Link to="/jobs" className="section-link flex items-center gap-1">View all <ChevronRight size={14} /></Link>
           </div>
 
-          {applications.length === 0 ? (
+          {recommendedJobs.length === 0 ? (
             <div className="card-p text-center py-8">
               <Briefcase size={32} className="text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">No applications yet. Start exploring!</p>
+              <p className="text-gray-500 text-sm">No new recommendations at the moment. Keep exploring!</p>
               <Link to="/jobs" className="btn-primary mt-3">Browse Jobs</Link>
             </div>
           ) : (
-            applications.slice(0, 3).map(app => {
-              const job = app.job;
-              if (!job) return null;
+            recommendedJobs.map(job => {
               const logoUrl = job?.company?.logo ? getAvatarUrl(job.company.logo) : null;
               return (
-                <div key={app._id} className="card-p flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <div key={job._id} className="card-p flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                     {logoUrl ? <img src={logoUrl} alt="" className="w-full h-full object-contain p-1" /> : <Briefcase size={20} className="text-gray-400" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 text-sm truncate">{job.title}</h3>
                     <p className="text-xs text-gray-500">{job?.company?.name}</p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                      <span>📍 {formatLocation(job.location)}</span>
-                      <span>📋 {job.jobType}</span>
-                      <span className="text-primary-600 font-semibold">{formatSalary(job.salary)}</span>
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                      <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">📍 {formatLocation(job.location)}</span>
+                      <span className="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-full">📋 {job.jobType}</span>
+                      <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-semibold">{formatSalary(job.salary)}</span>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={getStatusColor(app.status)}>{app.status}</span>
                     <Link to={`/jobs/${job._id}`} className="btn-primary btn-sm">View Job</Link>
                   </div>
                 </div>
@@ -119,7 +118,7 @@ const Dashboard = () => {
           <div className="card-p">
             <div className="section-header mb-3">
               <h2 className="section-title text-base">Recent Activity</h2>
-              <Link to="/my-applications" className="section-link text-xs">View all</Link>
+              <Link to="/applications" className="section-link text-xs">View all</Link>
             </div>
 
             {applications.length === 0 ? (

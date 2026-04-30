@@ -35,14 +35,14 @@ const JobCard = ({ job, compact = false }) => {
 
   return (
     <Link to={`/jobs/${job._id}`} className="block">
-      <div className="card p-4 hover:border-primary-200 hover:shadow-card-hover transition-all duration-200 group">
+      <div className="card p-4 hover:border-primary-300 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group">
         <div className="flex items-start gap-3">
           {/* Company Logo */}
           <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden border border-gray-200">
             {logoUrl ? (
-              <img src={logoUrl} alt={job.company?.name} className="w-full h-full object-contain p-1" />
+              <img src={logoUrl} alt={job.company?.name || 'Company'} className="w-full h-full object-contain p-1" />
             ) : (
-              <span className="text-lg font-bold text-gray-400">{job.company?.name?.[0] || '?'}</span>
+              <span className="text-lg font-bold text-gray-400">{(job.company?.name || 'U')[0]}</span>
             )}
           </div>
 
@@ -50,10 +50,10 @@ const JobCard = ({ job, compact = false }) => {
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-semibold text-gray-900 text-sm group-hover:text-primary-600 transition-colors truncate">
-                  {job.title}
+                  {job.title || 'Untitled Role'}
                 </h3>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-sm text-gray-600">{job.company?.name}</span>
+                  <span className="text-sm text-gray-600">{job.company?.name || 'Unknown Company'}</span>
                   {job.company?.isVerified && (
                     <span className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
                       <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -65,7 +65,15 @@ const JobCard = ({ job, compact = false }) => {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-sm font-semibold text-primary-600">{formatSalary(job.salary)}</span>
+                {(() => {
+                  const salaryText = formatSalary(job.salary);
+                  const isNotDisclosed = salaryText === 'Not disclosed';
+                  return (
+                    <span className={`text-sm ${isNotDisclosed ? 'text-gray-500 font-medium' : 'font-semibold text-primary-600'}`}>
+                      {salaryText}
+                    </span>
+                  );
+                })()}
                 <button
                   onClick={handleSave}
                   disabled={saving}
@@ -82,7 +90,7 @@ const JobCard = ({ job, compact = false }) => {
 
             <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-gray-500">
               <span className="flex items-center gap-1">
-                <MapPin size={11} />{formatLocation(job.location)}
+                <MapPin size={11} />{formatLocation(job.location) || 'Not specified'}
               </span>
               <span className="flex items-center gap-1">
                 <Briefcase size={11} />{job.workMode}

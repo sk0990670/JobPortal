@@ -1,4 +1,4 @@
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, FileText, Bookmark, User, Settings,
   LogOut, Building2, Briefcase, BookOpen, PlusCircle, Shield, X
@@ -64,6 +64,7 @@ const mobileAdminNav = [
 const Sidebar = ({ mobileOpen = false, onClose }) => {
   const user = useSelector(selectUser);
   const { logout } = useAuth();
+  const location = useLocation();
   const isAdmin = user?.role === 'admin';
   const navItems = isAdmin ? adminNavItems : userNavItems;
   const mobileNavItems = isAdmin ? mobileAdminNav : mobileUserNav;
@@ -125,7 +126,7 @@ const Sidebar = ({ mobileOpen = false, onClose }) => {
       </nav>
 
       {/* Profile completion */}
-      {!isAdmin && user?.profileCompletion < 100 && (
+      {!isAdmin && user?.profileCompletion < 100 && location.pathname !== '/profile' && (
         <div className="mx-1 mb-4 p-3 bg-primary-50 rounded-xl border border-primary-100">
           <p className="text-xs font-semibold text-primary-800 mb-1">Complete your profile</p>
           <p className="text-xs text-primary-600 mb-2">Get noticed by top recruiters.</p>

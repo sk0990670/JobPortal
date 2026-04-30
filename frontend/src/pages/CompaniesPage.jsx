@@ -13,6 +13,18 @@ const SORT_OPTIONS = [
   { label: 'Recently Added', value: '-createdAt' },
 ];
 
+const CompanyLogo = ({ src, alt, initials, colorClass }) => {
+  const [error, setError] = useState(false);
+  if (!src || error) {
+    return (
+      <div className={`w-full h-full flex items-center justify-center ${colorClass}`}>
+        <span className="text-xl font-bold">{initials}</span>
+      </div>
+    );
+  }
+  return <img src={src} alt={alt} onError={() => setError(true)} className="w-full h-full object-contain p-2 bg-white" />;
+};
+
 const CompaniesPage = () => {
   const [search, setSearch] = useState('');
   const [location, setLocation] = useState('');
@@ -74,20 +86,6 @@ const CompaniesPage = () => {
               </div>
             </div>
 
-            <div className="mb-5">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Sort By</h4>
-              <div className="space-y-2">
-                {SORT_OPTIONS.map(o => (
-                  <label key={o.value} className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" name="sort" value={o.value} checked={sort === o.value} onChange={() => setSort(o.value)}
-                      className="w-4 h-4 text-primary-600 focus:ring-primary-400" />
-                    <span className="text-sm text-gray-700">{o.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <button className="btn-primary w-full">Apply Filters</button>
           </div>
         </aside>
 
@@ -124,26 +122,34 @@ const CompaniesPage = () => {
                   : null;
                 return (
                   <div key={company._id}
-                    className="card-p flex flex-col items-center text-center hover:border-primary-200 hover:shadow-card-hover transition-all group">
-                    <div className={`w-16 h-16 rounded-2xl border border-gray-200 flex items-center justify-center overflow-hidden mb-3 ${logoUrl ? 'bg-gray-100' : colorClass}`}>
-                      {logoUrl
-                        ? <img src={logoUrl} alt={company.name} className="w-full h-full object-contain p-2" />
-                        : <span className="text-xl font-bold">{getInitials(company.name)}</span>
-                      }
+                    className="card-p flex flex-col items-center text-center hover:border-primary-300 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+                    <div className="w-16 h-16 rounded-2xl border border-gray-200 flex items-center justify-center overflow-hidden mb-3 bg-gray-50 flex-shrink-0">
+                      <CompanyLogo src={logoUrl} alt={company.name} initials={getInitials(company.name)} colorClass={colorClass} />
                     </div>
                     <h3 className="font-bold text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{company.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">{company.industry}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5 justify-center">
+                    <p className="text-xs text-gray-500 mt-0.5 font-medium">{company.industry || 'Technology'}</p>
+                    <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-1 justify-center">
                       <MapPin size={10} />
-                      {[company.headquarters?.city, company.headquarters?.state].filter(Boolean).join(', ') || 'Global'}
+                      {[company.headquarters?.city, company.headquarters?.state].filter(Boolean).join(', ') || 'Global Headquarters'}
                     </p>
-                    <div className="flex items-center justify-center mt-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><Briefcase size={11} />{company.openings} Openings</span>
+                    
+                    {/* Dynamic tagline or size context */}
+                    <p className="text-[11px] text-gray-500 mt-2.5 line-clamp-2 px-1 leading-relaxed min-h-[34px]">
+                      {company.description || company.tagline || `Innovating and shaping the future of the ${company.industry || 'tech'} industry.`}
+                    </p>
+
+                    <div className="w-full h-px bg-gray-100 my-3"></div>
+
+                    <div className="flex flex-col items-center justify-center text-xs w-full">
+                      <div className="flex items-center justify-center gap-1 text-gray-700 font-medium bg-gray-50 px-3 py-1.5 rounded-lg w-full mb-2">
+                        <Briefcase size={13} className="text-primary-600" />
+                        <span>{company.openings || 0} {(company.openings === 1) ? 'Opening' : 'Openings'}</span>
+                      </div>
+                      <Link to={`/jobs?search=${encodeURIComponent(company.name)}`}
+                        className="text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1 w-full justify-center py-1">
+                        View Jobs →
+                      </Link>
                     </div>
-                    <Link to={`/jobs?search=${encodeURIComponent(company.name)}`}
-                      className="mt-3 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1">
-                      View Openings →
-                    </Link>
                   </div>
                 );
               })}

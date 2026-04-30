@@ -1,22 +1,17 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BriefcaseBusiness, Mail, ArrowLeft, Lock, Target, Bookmark, TrendingUp } from 'lucide-react';
+import { BriefcaseBusiness, Mail, ArrowLeft, Lock } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { authService } from '../services/authService';
-import loginIllustration from '../assets/login-illustration.png';
-
-const FEATURES = [
-  { icon: Target,     color: 'bg-indigo-100 text-indigo-600', title: 'Discover Opportunities',  desc: 'Find internships and entry-level jobs from top companies.' },
-  { icon: Bookmark,   color: 'bg-purple-100 text-purple-600',  title: 'Save & Track',            desc: 'Save jobs and track your applications in one place.' },
-  { icon: TrendingUp, color: 'bg-blue-100 text-blue-600',      title: 'Grow Your Career',        desc: 'Build skills, get noticed and advance your career.' },
-];
+import heroIllustration from '../assets/hero-illustration.png';
 
 const ForgotPasswordPage = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputs = useRef([]);
   const { register, handleSubmit, formState: { errors } } = useForm();
@@ -41,6 +36,20 @@ const ForgotPasswordPage = () => {
     updated[index] = value.slice(-1);
     setOtp(updated);
     if (value && index < 5) inputs.current[index + 1]?.focus();
+  };
+
+  const handleResendOTP = async () => {
+    setResending(true);
+    try {
+      await authService.forgotPassword({ email });
+      toast.success('New OTP sent to your email.');
+      setOtp(['', '', '', '', '', '']);
+      inputs.current[0]?.focus();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setResending(false);
+    }
   };
 
   const handleKeyDown = (index, e) => {
@@ -90,35 +99,20 @@ const ForgotPasswordPage = () => {
         {/* Headline */}
         <div className="mb-6 flex-shrink-0">
           <h2 className="text-3xl font-extrabold text-gray-900 leading-tight mb-2">
-            Reset your password on<br />
-            <span className="text-gradient">JobPortal</span>
+            Get back to your<br />
+            <span className="text-gradient">career journey</span>
           </h2>
-          <p className="text-gray-600">Regain access to your dream career opportunities.</p>
+          <p className="text-gray-600">Regain access to your account and explore new opportunities.</p>
         </div>
 
         {/* Image */}
         <div className="flex-1 flex items-center justify-center min-h-0 mb-6">
           <img
-            src={loginIllustration}
-            alt="Job search illustration"
+            src={heroIllustration}
+            alt="Career illustration"
             className="w-full max-w-md object-contain"
-            style={{ maxHeight: '340px' }}
+            style={{ maxHeight: '420px' }}
           />
-        </div>
-
-        {/* Feature bullets */}
-        <div className="flex flex-col gap-3 flex-shrink-0">
-          {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-            <div key={title} className="flex items-start gap-3">
-              <span className={`w-8 h-8 rounded-lg ${color} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={15} />
-              </span>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">{title}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
@@ -132,7 +126,7 @@ const ForgotPasswordPage = () => {
           </Link>
 
           {step === 1 ? (
-            <>
+            <div className="card-p">
               <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Forgot Password?</h1>
                 <p className="text-gray-500 text-sm mt-2">
@@ -140,30 +134,34 @@ const ForgotPasswordPage = () => {
                 </p>
               </div>
 
-              <div className="card-p">
-                <form onSubmit={handleSubmit(handleRequestOTP)} className="space-y-5">
-                  <div>
-                    <label className="label">Email Address</label>
-                    <div className="relative">
-                      <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } })}
-                        type="email"
-                        placeholder="Enter your email address"
-                        className={`input pl-10 ${errors.email ? 'input-error' : ''}`}
-                      />
-                    </div>
-                    {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+              <form onSubmit={handleSubmit(handleRequestOTP)} className="space-y-5">
+                <div>
+                  <label className="label">Email Address</label>
+                  <div className="relative">
+                    <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
+                    <input
+                      {...register('email', { required: 'Email is required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid email' } })}
+                      type="email"
+                      placeholder="Enter your email address"
+                      className={`input pl-10 ${errors.email ? 'input-error' : ''}`}
+                    />
                   </div>
+                  {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+                </div>
 
-                  <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 text-base">
-                    {loading ? 'Sending OTP…' : 'Send Reset OTP'}
-                  </button>
-                </form>
+                <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 text-base">
+                  {loading ? 'Sending OTP…' : 'Send Reset OTP'}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-primary-600 flex items-center justify-center gap-2 transition-colors">
+                  <ArrowLeft size={16} /> Back to Log In
+                </Link>
               </div>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="card-p">
               <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">Set new password</h1>
                 <p className="text-gray-500 text-sm mt-2">
@@ -171,9 +169,9 @@ const ForgotPasswordPage = () => {
                 </p>
               </div>
 
-              <div className="card-p">
-                <form onSubmit={handleSubmit(handleResetPassword)} className="space-y-6">
-                  <div className="flex gap-2 sm:gap-3 justify-center mb-2" onPaste={handlePaste}>
+              <form onSubmit={handleSubmit(handleResetPassword)} className="space-y-6">
+                <div>
+                  <div className="flex gap-2 sm:gap-3 justify-center mb-4" onPaste={handlePaste}>
                     {otp.map((digit, i) => (
                       <input
                         key={i}
@@ -184,40 +182,51 @@ const ForgotPasswordPage = () => {
                         value={digit}
                         onChange={e => handleOTPChange(i, e.target.value)}
                         onKeyDown={e => handleKeyDown(i, e)}
-                        className={`w-10 sm:w-12 h-12 sm:h-14 text-center text-xl sm:text-2xl font-bold border-2 rounded-xl outline-none transition-all
+                        className={`w-9 sm:w-11 h-11 sm:h-12 text-center text-xl sm:text-2xl font-bold border-2 rounded-xl outline-none transition-all
                           ${digit ? 'border-primary-500 bg-indigo-50 text-primary-700' : 'border-gray-200 text-gray-900'}
-                          focus:border-primary-500 focus:ring-2 focus:ring-primary-100`}
+                          focus:border-primary-500 focus:ring-2 focus:ring-primary-600 focus:ring-opacity-50 shadow-sm`}
                       />
                     ))}
                   </div>
-
-                  <div>
-                    <label className="label">New Password</label>
-                    <div className="relative">
-                      <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        {...register('newPassword', { required: 'New password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })}
-                        type="password"
-                        placeholder="Enter new password"
-                        className={`input pl-10 ${errors.newPassword ? 'input-error' : ''}`}
-                      />
-                    </div>
-                    {errors.newPassword && <p className="text-xs text-red-500 mt-1">{errors.newPassword.message}</p>}
+                  
+                  <div className="text-center text-sm pt-1 pb-2">
+                    <button
+                      type="button"
+                      onClick={handleResendOTP}
+                      disabled={resending}
+                      className="text-primary-600 font-semibold hover:underline disabled:text-gray-400 disabled:no-underline transition-colors"
+                    >
+                      {resending ? 'Resending...' : "Didn't receive the code? Resend OTP"}
+                    </button>
                   </div>
+                </div>
 
-                  <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 text-base">
-                    {loading ? 'Resetting…' : 'Reset Password'}
-                  </button>
-                </form>
+                <div className="mt-2">
+                  <label className="label">New Password</label>
+                  <div className="relative">
+                    <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 mt-px text-gray-400" />
+                    <input
+                      {...register('newPassword', { required: 'New password is required', minLength: { value: 8, message: 'Minimum 8 characters' } })}
+                      type="password"
+                      placeholder="Enter new password"
+                      className={`input pl-10 ${errors.newPassword ? 'input-error' : ''}`}
+                    />
+                  </div>
+                  {errors.newPassword && <p className="text-xs text-red-500 mt-1">{errors.newPassword.message}</p>}
+                </div>
+
+                <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 text-base">
+                  {loading ? 'Resetting…' : 'Reset Password'}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center">
+                <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-primary-600 flex items-center justify-center gap-2 transition-colors">
+                  <ArrowLeft size={16} /> Back to Log In
+                </Link>
               </div>
-            </>
+            </div>
           )}
-
-          <div className="mt-8 text-center">
-            <Link to="/login" className="text-sm font-medium text-gray-500 hover:text-primary-600 flex items-center justify-center gap-2 transition-colors">
-              <ArrowLeft size={16} /> Back to Log In
-            </Link>
-          </div>
         </div>
       </div>
     </div>
