@@ -17,16 +17,17 @@ const createJob = asyncHandler(async (req, res) => {
     company = await Company.findById(companyId);
     if (!company) { res.status(404); throw new Error('Company not found.'); }
   } else {
-    company = await Company.create({ name: companyName, website: companyWebsite, addedBy: req.user.id });
+    company = await Company.findOne({ name: { $regex: new RegExp(`^${companyName}$`, 'i') } });
+    if (!company) {
+      company = await Company.create({ name: companyName, website: companyWebsite, addedBy: req.user.id });
+    }
   }
 
-  // ── Sync logo & website back onto the Company document ──────────────────
-  const companyUpdates = {};
+  // ── Sync logo, website & increment openings onto the Company document ──────────────────
+  const companyUpdates = { $inc: { openings: 1 } };
   if (companyLogo)    companyUpdates.logo    = companyLogo;
   if (companyWebsite) companyUpdates.website = companyWebsite;
-  if (Object.keys(companyUpdates).length) {
-    await Company.findByIdAndUpdate(company._id, companyUpdates);
-  }
+  await Company.findByIdAndUpdate(company._id, companyUpdates);
 
   const job = await Job.create({
     title, company: company._id, postedBy: req.user.id, description,
@@ -112,6 +113,7 @@ const getJobs = asyncHandler(async (req, res) => {
   if (search) filter.$or = [
     { title: { $regex: search, $options: 'i' } },
     { description: { $regex: search, $options: 'i' } },
+    { companyName: { $regex: search, $options: 'i' } },
   ];
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -154,12 +156,16 @@ const updateJob = asyncHandler(async (req, res) => {
   }
 
   // Sync logo & website back onto the Company document
-  const { companyLogo, companyWebsite } = req.body;
+  const { companyLogo, companyWebsite, city } = req.body;
   const companyUpdates = {};
   if (companyLogo)    companyUpdates.logo    = companyLogo;
   if (companyWebsite) companyUpdates.website = companyWebsite;
   if (Object.keys(companyUpdates).length) {
     await Company.findByIdAndUpdate(job.company, companyUpdates);
+  }
+
+  if (city) {
+    req.body['location.city'] = city;
   }
 
   job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
@@ -176,6 +182,7 @@ const deleteJob = asyncHandler(async (req, res) => {
   if (job.postedBy.toString() !== req.user.id && req.user.role !== 'admin') {
     res.status(403); throw new Error('Not authorized.');
   }
+  await Company.findByIdAndUpdate(job.company, { $inc: { openings: -1 } });
   await job.deleteOne();
   res.json({ success: true, message: 'Job deleted.' });
 });

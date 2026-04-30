@@ -37,15 +37,16 @@ const EditJobPage = () => {
     reset({
       companyName:     job.companyName || job.company?.name || '',
       companyWebsite:  job.companyWebsite || job.company?.website || '',
-      companyLocation: job.companyLocation || '',
+      companyLocation: job.companyLocation || job.city || job.location?.city || '',
       title:           job.title || '',
       jobType:         job.jobType || 'Internship',
       experienceLevel: job.experienceLevel || 'Fresher',
       jobFunction:     job.jobFunction || 'Software Engineering',
-      city:            job.city || job.location?.city || '',
       workMode:        job.workMode || 'On-site',
       currency:        job.salary?.currency || 'INR',
+      salaryPeriod:    job.salary?.period || 'month',
       description:     job.description || '',
+      status:          job.status || 'active',
       batch:           job.batch || '',
       postedDate:      job.postedDate ? job.postedDate.slice(0,10) : new Date().toISOString().slice(0,10),
       applyLink:       job.applyLink || '',
@@ -90,13 +91,15 @@ const EditJobPage = () => {
   const onSubmit = (formData) => {
     updateMutation.mutate({
       ...formData,
+      city: formData.companyLocation,
       companyLogo: logoUrl,
       'salary.min': parseNum(salaryMin),
       'salary.max': parseNum(salaryMax),
+      'salary.period': formData.salaryPeriod,
     });
   };
 
-  const preview = watch(['title', 'jobType', 'experienceLevel', 'workMode', 'city']);
+  const preview = watch(['companyName', 'title', 'jobType', 'experienceLevel', 'workMode', 'companyLocation']);
 
   if (isLoading) return (
     <div className="page-container py-10 flex items-center justify-center">
@@ -195,10 +198,6 @@ const EditJobPage = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">City</label>
-                      <input {...register('city')} className="input" />
-                    </div>
-                    <div>
                       <label className="label">Work Mode</label>
                       <div className="flex gap-3 mt-1">
                         {['On-site','Remote','Hybrid'].map(mode => (
@@ -209,10 +208,6 @@ const EditJobPage = () => {
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="label">Status</label>
                       <div className="flex gap-3 mt-1">
@@ -230,7 +225,13 @@ const EditJobPage = () => {
 
                   {/* Salary */}
                   <div>
-                    <label className="label">Salary Range</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="label mb-0">Salary Range</label>
+                      <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+                        <button type="button" onClick={() => setValue('salaryPeriod', 'month')} className={`px-4 py-1 text-xs rounded-md transition-colors ${watch('salaryPeriod') === 'month' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Monthly</button>
+                        <button type="button" onClick={() => setValue('salaryPeriod', 'year')} className={`px-4 py-1 text-xs rounded-md transition-colors ${watch('salaryPeriod') === 'year' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>LPA</button>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-3">
                       <input type="text" value={salaryMin} onChange={e => setSalaryMin(formatNum(e.target.value))} placeholder="e.g. 30,000" className="input flex-1" />
                       <span className="text-gray-400 flex-shrink-0">to</span>
@@ -302,15 +303,18 @@ const EditJobPage = () => {
                         : <Building2 size={18} className="text-gray-400" />}
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-gray-700">{preview[4] || 'Location'}</p>
+                      <p className="font-semibold text-sm text-gray-700">{preview[0] || 'Company Name'}</p>
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <MapPin size={10} />{preview[5] || 'Location'}
+                      </div>
                     </div>
                   </div>
-                  <h2 className="font-bold text-gray-900 mb-2">{watch('title') || 'Job Title'}</h2>
+                  <h2 className="font-bold text-gray-900 mb-2">{preview[1] || 'Job Title'}</h2>
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    <span className="badge-blue">{preview[1] || 'Full-time'}</span>
-                    <span className="badge-gray">{preview[2] || 'Fresher'}</span>
-                    <span className="badge-purple">{preview[3] || 'On-site'}</span>
-                    {preview[4] && <span className="badge-green">{preview[4]}</span>}
+                    <span className="badge-blue">{preview[2] || 'Full-time'}</span>
+                    <span className="badge-gray">{preview[3] || 'Fresher'}</span>
+                    <span className="badge-purple">{preview[4] || 'On-site'}</span>
+                    {preview[5] && <span className="badge-green">{preview[5]}</span>}
                   </div>
                 </div>
 

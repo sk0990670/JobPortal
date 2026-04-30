@@ -16,7 +16,7 @@ const PostJobPage = () => {
   const logoRef = useRef(null);
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm({
-    defaultValues: { currency: 'INR', workMode: 'On-site', jobType: 'Internship', experienceLevel: 'Fresher', postedDate: new Date().toISOString().split('T')[0] },
+    defaultValues: { currency: 'INR', salaryPeriod: 'month', workMode: 'On-site', jobType: 'Internship', experienceLevel: 'Fresher', postedDate: new Date().toISOString().split('T')[0] },
   });
 
   // Salary comma formatting
@@ -40,7 +40,7 @@ const PostJobPage = () => {
     }
   };
 
-  const preview = watch(['title', 'jobType', 'experienceLevel', 'workMode', 'city']);
+  const preview = watch(['companyName', 'title', 'jobType', 'experienceLevel', 'workMode', 'companyLocation']);
 
   const createMutation = useMutation({
     mutationFn: (data) => jobService.createJob(data),
@@ -66,10 +66,12 @@ const PostJobPage = () => {
   const onSubmit = (data) => {
     createMutation.mutate({
       ...data,
+      city: data.companyLocation,
       companyLogo: logoUrl,
       status: isDraft ? 'draft' : 'active',
       'salary.min': parseNum(salaryMin),
       'salary.max': parseNum(salaryMax),
+      'salary.period': data.salaryPeriod,
     });
   };
 
@@ -173,10 +175,6 @@ const PostJobPage = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">City</label>
-                      <input {...register('city')} placeholder="Enter job location" className="input" />
-                    </div>
-                    <div>
                       <label className="label">Work Mode *</label>
                       <div className="flex gap-3 mt-1">
                         {['On-site', 'Remote', 'Hybrid'].map(mode => (
@@ -188,10 +186,6 @@ const PostJobPage = () => {
                         ))}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Status */}
-                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="label">Status</label>
                       <div className="flex gap-3 mt-1">
@@ -209,7 +203,13 @@ const PostJobPage = () => {
 
                   {/* Salary Range */}
                   <div>
-                    <label className="label">Salary Range (Optional)</label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="label mb-0">Salary Range (Optional)</label>
+                      <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+                        <button type="button" onClick={() => setValue('salaryPeriod', 'month')} className={`px-4 py-1 text-xs rounded-md transition-colors ${watch('salaryPeriod') === 'month' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Monthly</button>
+                        <button type="button" onClick={() => setValue('salaryPeriod', 'year')} className={`px-4 py-1 text-xs rounded-md transition-colors ${watch('salaryPeriod') === 'year' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>LPA</button>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-3">
                       <input
                         type="text"
@@ -324,16 +324,16 @@ const PostJobPage = () => {
                     <div>
                       <p className="font-semibold text-sm text-gray-700">{preview[0] || 'Company Name'}</p>
                       <div className="flex items-center gap-1 text-xs text-gray-400">
-                        <MapPin size={10} />{preview[4] || 'Location'}
+                        <MapPin size={10} />{preview[5] || 'Location'}
                       </div>
                     </div>
                   </div>
-                  <h2 className="font-bold text-gray-900 mb-2">{watch('title') || 'Job Title'}</h2>
+                  <h2 className="font-bold text-gray-900 mb-2">{preview[1] || 'Job Title'}</h2>
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    <span className="badge-blue">{preview[1] || 'Full-time'}</span>
-                    <span className="badge-gray">{preview[2] || '0-2 yrs'}</span>
-                    <span className="badge-purple">{preview[3] || 'Function'}</span>
-                    {preview[4] && <span className="badge-green">{preview[4]}</span>}
+                    <span className="badge-blue">{preview[2] || 'Full-time'}</span>
+                    <span className="badge-gray">{preview[3] || '0-2 yrs'}</span>
+                    <span className="badge-purple">{preview[4] || 'Work Mode'}</span>
+                    {preview[5] && <span className="badge-green">{preview[5]}</span>}
                   </div>
                   {watch('description') && (
                     <>

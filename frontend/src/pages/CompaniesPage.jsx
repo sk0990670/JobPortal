@@ -139,18 +139,10 @@ const CompaniesPage = () => {
                     <div className="flex items-center justify-center mt-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Briefcase size={11} />{company.openings} Openings</span>
                     </div>
-                    {websiteUrl ? (
-                      <a href={websiteUrl} target="_blank" rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="mt-3 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1">
-                        Visit Website →
-                      </a>
-                    ) : (
-                      <Link to={`/companies/${company._id}`}
-                        className="mt-3 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors">
-                        View Profile →
-                      </Link>
-                    )}
+                    <Link to={`/jobs?search=${encodeURIComponent(company.name)}`}
+                      className="mt-3 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1">
+                      View Openings →
+                    </Link>
                   </div>
                 );
               })}
