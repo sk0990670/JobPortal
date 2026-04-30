@@ -114,10 +114,12 @@ const userSchema = new mongoose.Schema(
 
     // Preferences
     preferences: {
-      jobTypes: [{ type: String, enum: ['Full-time', 'Part-time', 'Internship', 'Contract', 'Remote'] }],
-      locations: [String],
-      expectedSalary: { type: Number },
-      currency: { type: String, default: 'INR' },
+      preferredRole: { type: String, default: '' },
+      workMode: { type: String, default: '' },
+      jobType: { type: String, default: '' },
+      preferredLocation: { type: String, default: '' },
+      expectedSalary: { type: String, default: '' },
+      desiredSkills: { type: String, default: '' }
     },
 
     // Settings

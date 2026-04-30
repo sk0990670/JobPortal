@@ -367,17 +367,31 @@ export const PreferencesTab = ({ profile, formData, setFormData, isEditing }) =>
   const prefs = isEditing ? (formData.preferences ?? profile?.preferences ?? {}) : (profile?.preferences || {});
   const f = (k, v) => setFormData(p => ({ ...p, preferences: { ...(p.preferences ?? profile?.preferences ?? {}), [k]: v } }));
 
-  const Row = ({ label, field, options }) => (
-    <div>
-      <label className="label">{label}</label>
-      {isEditing ? (
-        <select className="input" value={prefs[field] || ''} onChange={e => f(field, e.target.value)}>
-          <option value="">Select…</option>
-          {options.map(o => <option key={o}>{o}</option>)}
-        </select>
-      ) : <p className="text-sm font-medium text-gray-900">{prefs[field] || '—'}</p>}
-    </div>
-  );
+  const Row = ({ label, field, options, isTopLevel }) => {
+    const value = isTopLevel 
+      ? (isEditing ? (formData[field] ?? profile?.[field]) : profile?.[field])
+      : (prefs[field] || '');
+      
+    const handleChange = (e) => {
+      if (isTopLevel) {
+        setFormData(p => ({ ...p, [field]: e.target.value }));
+      } else {
+        f(field, e.target.value);
+      }
+    };
+
+    return (
+      <div>
+        <label className="label">{label}</label>
+        {isEditing ? (
+          <select className="input" value={value || ''} onChange={handleChange}>
+            <option value="">Select…</option>
+            {options.map(o => <option key={o}>{o}</option>)}
+          </select>
+        ) : <p className="text-sm font-medium text-gray-900">{value || '—'}</p>}
+      </div>
+    );
+  };
 
   return (
     <div className="card-p space-y-5">
@@ -388,7 +402,7 @@ export const PreferencesTab = ({ profile, formData, setFormData, isEditing }) =>
         <Row label="Job Type" field="jobType" options={['Full-time', 'Part-time', 'Internship', 'Freelance', 'Contract']} />
         <Row label="Preferred Location" field="preferredLocation" options={['Bangalore', 'Mumbai', 'Delhi/NCR', 'Hyderabad', 'Pune', 'Chennai', 'Kolkata', 'Remote (Any)', 'Open to relocation']} />
         <Row label="Expected Salary (LPA)" field="expectedSalary" options={['0–3 LPA', '3–6 LPA', '6–10 LPA', '10–15 LPA', '15–25 LPA', '25+ LPA']} />
-        <Row label="Notice Period" field="noticePeriod" options={['Immediate', '15 days', '1 month', '2 months', '3 months']} />
+        <Row label="Notice Period" field="noticePeriod" options={['Immediate', '15 days', '1 month', '2 months', '3 months']} isTopLevel={true} />
       </div>
       {isEditing && (
         <div>
