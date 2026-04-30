@@ -11,6 +11,13 @@ export const useAuth = () => {
 
   const login = async (credentials) => {
     const { data } = await authService.login(credentials);
+    
+    if (data.requires2FA) {
+      toast.success(data.message || 'OTP sent to your email.');
+      navigate(`/verify-otp?email=${encodeURIComponent(data.email)}&type=2fa`);
+      return data;
+    }
+    
     dispatch(setCredentials({ user: data.user, token: data.token }));
     toast.success(data.message || 'Logged in successfully!');
     navigate('/dashboard');

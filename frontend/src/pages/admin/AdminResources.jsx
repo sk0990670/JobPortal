@@ -17,7 +17,8 @@ const AdminResources = () => {
   const [deleteId, setDeleteId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null); // holds resource being edited
-  const [form, setForm] = useState({ title: '', excerpt: '', content: '', category: 'Career Guidance', readTime: 5, isFeatured: false, isPublished: true });
+  const [svgInputMode, setSvgInputMode] = useState('raw'); // 'raw' or 'upload'
+  const [form, setForm] = useState({ title: '', excerpt: '', content: '', svgIcon: '', category: 'Career Guidance', readTime: 5, isFeatured: false, isPublished: true });
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-resources', search],
@@ -44,7 +45,7 @@ const AdminResources = () => {
         toast.success(editing ? 'Resource updated!' : 'Resource published! Subscribers notified. ✉️');
         queryClient.invalidateQueries(['admin-resources']);
         setShowForm(false); setEditing(null);
-        setForm({ title: '', excerpt: '', content: '', category: 'Career Guidance', readTime: 5, isFeatured: false, isPublished: true });
+        setForm({ title: '', excerpt: '', content: '', svgIcon: '', category: 'Career Guidance', readTime: 5, isFeatured: false, isPublished: true });
       } else { toast.error(data.message || 'Failed'); }
     },
     onError: () => toast.error('Server error'),
@@ -67,7 +68,7 @@ const AdminResources = () => {
 
   const openEdit = (r) => {
     setEditing(r);
-    setForm({ title: r.title, excerpt: r.excerpt, content: r.content || '', category: r.category, readTime: r.readTime || 5, isFeatured: r.isFeatured, isPublished: r.isPublished });
+    setForm({ title: r.title, excerpt: r.excerpt, content: r.content || '', svgIcon: r.svgIcon || '', category: r.category, readTime: r.readTime || 5, isFeatured: r.isFeatured, isPublished: r.isPublished });
     setShowForm(true);
   };
 
@@ -167,6 +168,38 @@ const AdminResources = () => {
               <div>
                 <label className="label">Short Excerpt *</label>
                 <input value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="One-line summary shown in cards" className="input" required />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="label mb-0">SVG Icon (Optional)</label>
+                  <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+                    <button type="button" onClick={() => setSvgInputMode('raw')} className={`px-4 py-1 text-xs rounded-md transition-colors ${svgInputMode === 'raw' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Paste Raw</button>
+                    <button type="button" onClick={() => setSvgInputMode('upload')} className={`px-4 py-1 text-xs rounded-md transition-colors ${svgInputMode === 'upload' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Upload SVG</button>
+                  </div>
+                </div>
+                {svgInputMode === 'raw' ? (
+                  <textarea value={form.svgIcon} onChange={e => setForm(f => ({ ...f, svgIcon: e.target.value }))} rows={3} placeholder='<svg>...</svg>' className="input font-mono text-xs resize-y" />
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 hover:bg-primary-50 transition-all">
+                    <input 
+                      type="file" 
+                      accept=".svg" 
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            setForm(f => ({ ...f, svgIcon: evt.target.result }));
+                            toast.success('SVG loaded successfully!');
+                          };
+                          reader.readAsText(file);
+                        }
+                      }} 
+                      className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 cursor-pointer"
+                    />
+                    {form.svgIcon && form.svgIcon.startsWith('<svg') && <p className="text-xs text-green-600 mt-2 font-medium">✓ SVG data loaded</p>}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="label">Full Content</label>

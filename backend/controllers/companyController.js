@@ -8,7 +8,7 @@ const Job = require('../models/Job');
 const getCompanies = asyncHandler(async (req, res) => {
   const { search, location, size, industry, sort = '-openings', page = 1, limit = 12 } = req.query;
 
-  const filter = {};
+  const filter = { openings: { $gt: 0 } };
   if (search) filter.$or = [{ name: { $regex: search, $options: 'i' } }, { description: { $regex: search, $options: 'i' } }, { industry: { $regex: search, $options: 'i' } }];
   if (location) filter['headquarters.city'] = { $regex: location, $options: 'i' };
   if (size) filter.size = { $in: size.split(',') };

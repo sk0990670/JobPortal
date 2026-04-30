@@ -12,6 +12,10 @@ const server = http.createServer(app);
 // Initialize socket.io
 init(server);
 
+// Initialize Cron Jobs (Batch Emails, etc)
+const initCronJobs = require('./utils/cronJobs');
+initCronJobs();
+
 server.listen(PORT, () => {
   console.log(`\n🚀 JobPortal Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   console.log(`📡 API URL: http://localhost:${PORT}/api`);

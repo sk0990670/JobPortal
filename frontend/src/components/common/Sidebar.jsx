@@ -34,6 +34,7 @@ const adminNavItems = [
       { to: '/post-job',        icon: PlusCircle,      label: 'Post a Job' },
       { to: '/admin/jobs',      icon: Briefcase,       label: 'Manage Jobs' },
       { to: '/admin/resources', icon: BookOpen,        label: 'Manage Resources' },
+      { to: '/admin/users',     icon: User,            label: 'Manage Users' },
     ]
   },
   {

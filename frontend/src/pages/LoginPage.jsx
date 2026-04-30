@@ -130,9 +130,9 @@ const LoginPage = () => {
                   <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-400" />
                   <span className="text-sm text-gray-600">Remember me</span>
                 </label>
-                <button type="button" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
                   Forgot password?
-                </button>
+                </Link>
               </div>
 
               <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-3 text-base">

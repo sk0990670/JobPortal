@@ -13,11 +13,11 @@ const resourceSchema = new mongoose.Schema(
     content: { type: String, required: true },
     category: {
       type: String,
-      enum: ['Career Guidance', 'Resume & Cover Letter', 'Interview Tips', 'Skills & Development', 'Industry Insights'],
       required: true,
     },
     tags: [{ type: String }],
     thumbnail: { type: String, default: '' },
+    svgIcon: { type: String, default: '' },
     readTime: { type: Number, default: 5 }, // minutes
     author: {
       type: mongoose.Schema.Types.ObjectId,

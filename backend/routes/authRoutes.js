@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const passport = require('passport');
-const { register, login, getMe, logout, changePassword, verifyOTP, resendOTP, registerAdmin } = require('../controllers/authController');
+const { register, login, getMe, logout, changePassword, verifyOTP, resendOTP, registerAdmin, generate2FA, verify2FA, disable2FA, verify2FALogin, forgotPassword, resetPassword } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 const { sendTokenResponse } = require('../utils/generateToken');
 
@@ -28,6 +28,16 @@ router.put( '/change-password', protect, changePassword);
 // OTP verification
 router.post('/verify-otp',  verifyOTP);
 router.post('/resend-otp',  resendOTP);
+
+// 2FA Routes
+router.get('/2fa/generate', protect, generate2FA);
+router.post('/2fa/verify', protect, verify2FA);
+router.post('/2fa/disable', protect, disable2FA);
+router.post('/verify-2fa-login', verify2FALogin);
+
+// Password Reset Routes
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Admin creation (requires x-admin-secret header)
 router.post('/register-admin', registerAdmin);

@@ -111,6 +111,7 @@ const jobSchema = new mongoose.Schema(
     // Contact info
     contactEmail: { type: String },
     contactPhone: { type: String },
+    extraEmail: { type: String },
 
     // Tags for search
     tags: [{ type: String }],

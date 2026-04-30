@@ -1,6 +1,8 @@
 const asyncHandler = require('express-async-handler');
 const { validationResult } = require('express-validator');
 const crypto = require('crypto');
+const speakeasy = require('speakeasy');
+const qrcode = require('qrcode');
 const User = require('../models/User');
 const { sendTokenResponse } = require('../utils/generateToken');
 const { sendOTPEmail } = require('../utils/emailService');
@@ -111,7 +113,7 @@ const resendOTP = asyncHandler(async (req, res) => {
 
   const user = await User.findOne({ email });
   if (!user) { res.status(404); throw new Error('No account found with this email.'); }
-  if (user.isVerified) { res.status(400); throw new Error('This account is already verified.'); }
+  if (user.isVerified && !user.settings?.twoFactorAuth) { res.status(400); throw new Error('This account is already verified and 2FA is not enabled.'); }
 
   const otp        = generateOTP();
   const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
@@ -119,7 +121,13 @@ const resendOTP = asyncHandler(async (req, res) => {
   user.otpExpires = otpExpires;
   await user.save({ validateBeforeSave: false });
 
-  await sendOTPEmail(email, user.fullName, otp);
+  console.log(`\n\n=== Resend OTP for ${email}: ${otp} ===\n\n`);
+
+  try {
+    await sendOTPEmail(email, user.fullName, otp);
+  } catch (err) {
+    console.error('Email sending failed:', err.message);
+  }
 
   res.json({ success: true, message: `New OTP sent to ${email}.` });
 });
@@ -151,6 +159,16 @@ const login = asyncHandler(async (req, res) => {
   if (!user.isActive) {
     res.status(403);
     throw new Error('Account has been deactivated. Please contact support.');
+  }
+
+  // 2FA Check
+  if (user.settings?.twoFactorAuth) {
+    return res.json({
+      success: true,
+      requires2FA: true,
+      message: 'Two-factor authentication required. Please enter your authenticator code.',
+      email: user.email,
+    });
   }
 
   user.lastLogin = Date.now();
@@ -234,4 +252,177 @@ const registerAdmin = asyncHandler(async (req, res) => {
   sendTokenResponse(admin, 201, res, 'Admin account created successfully.');
 });
 
-module.exports = { register, login, getMe, logout, changePassword, verifyOTP, resendOTP, registerAdmin };
+// @desc    Generate 2FA secret and QR code
+// @route   GET /api/auth/2fa/generate
+// @access  Private
+const generate2FA = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  const secret = speakeasy.generateSecret({
+    name: `JobPortal:${user.email}`,
+    issuer: 'JobPortal'
+  });
+
+  user.settings.twoFactorSecret = secret.base32;
+  await user.save({ validateBeforeSave: false });
+
+  qrcode.toDataURL(secret.otpauth_url, (err, data_url) => {
+    if (err) {
+      res.status(500);
+      throw new Error('Error generating QR code');
+    }
+
+    res.json({
+      success: true,
+      qrCodeUrl: data_url,
+      secret: secret.base32
+    });
+  });
+});
+
+// @desc    Verify 2FA token to enable
+// @route   POST /api/auth/2fa/verify
+// @access  Private
+const verify2FA = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  const user = await User.findById(req.user.id);
+
+  const verified = speakeasy.totp.verify({
+    secret: user.settings.twoFactorSecret,
+    encoding: 'base32',
+    token
+  });
+
+  if (verified) {
+    user.settings.twoFactorAuth = true;
+    await user.save({ validateBeforeSave: false });
+    
+    res.json({ success: true, message: 'Two-factor authentication enabled successfully.' });
+  } else {
+    res.status(400);
+    throw new Error('Invalid authentication code.');
+  }
+});
+
+// @desc    Disable 2FA
+// @route   POST /api/auth/2fa/disable
+// @access  Private
+const disable2FA = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+
+  user.settings.twoFactorAuth = false;
+  user.settings.twoFactorSecret = null;
+  await user.save({ validateBeforeSave: false });
+
+  res.json({ success: true, message: 'Two-factor authentication disabled.' });
+});
+
+// @desc    Verify 2FA login
+// @route   POST /api/auth/verify-2fa-login
+// @access  Public
+const verify2FALogin = asyncHandler(async (req, res) => {
+  const { email, token } = req.body;
+  
+  const user = await User.findOne({ email });
+  if (!user || !user.settings?.twoFactorAuth) {
+    res.status(400);
+    throw new Error('Invalid request or 2FA not enabled.');
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.settings.twoFactorSecret,
+    encoding: 'base32',
+    token
+  });
+
+  if (!verified) {
+    res.status(400);
+    throw new Error('Invalid authenticator code.');
+  }
+
+  user.lastLogin = Date.now();
+  await user.save({ validateBeforeSave: false });
+
+  sendTokenResponse(user, 200, res, 'Logged in successfully.');
+});
+
+// @desc    Forgot Password
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('No account found with that email address.');
+  }
+
+  const otp = generateOTP();
+  user.otp = otp;
+  user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+  await user.save({ validateBeforeSave: false });
+
+  console.log(`\n\n=== Password Reset OTP for ${email}: ${otp} ===\n\n`);
+
+  try {
+    await sendOTPEmail(email, user.fullName, otp);
+  } catch (error) {
+    console.error('Email sending failed:', error.message);
+  }
+
+  res.json({ success: true, message: 'Password reset OTP sent to your email.' });
+});
+
+// @desc    Reset Password
+// @route   POST /api/auth/reset-password
+// @access  Public
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, password } = req.body;
+
+  const user = await User.findOne({ email }).select('+password +otp +otpExpires');
+  if (!user || !user.otp || !user.otpExpires) {
+    res.status(400);
+    throw new Error('Invalid or expired OTP.');
+  }
+
+  if (new Date() > user.otpExpires) {
+    res.status(400);
+    throw new Error('OTP has expired.');
+  }
+
+  if (user.otp !== otp.toString()) {
+    res.status(400);
+    throw new Error('Invalid OTP.');
+  }
+
+  const isSamePassword = await user.matchPassword(password);
+  if (isSamePassword) {
+    res.status(400);
+    throw new Error('Please add a new password. This is your old password.');
+  }
+
+  user.password = password;
+  user.otp = undefined;
+  user.otpExpires = undefined;
+  await user.save();
+
+  res.json({ success: true, message: 'Password has been reset successfully.' });
+});
+
+module.exports = {
+  register,
+  login,
+  getMe,
+  logout,
+  verifyOTP,
+  resendOTP,
+  changePassword,
+  registerAdmin,
+  generate2FA,
+  verify2FA,
+  disable2FA,
+  verify2FALogin,
+  forgotPassword,
+  resetPassword
+};

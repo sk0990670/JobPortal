@@ -216,7 +216,38 @@ const deactivateAccount = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Account deactivated successfully.' });
 });
 
+// @desc    Subscribe to job alerts
+// @route   POST /api/users/job-alerts/subscribe
+// @access  Private
+const subscribeJobAlerts = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found.');
+  }
+
+  // Check if already subscribed
+  if (user.settings?.emailNotifications?.jobAlerts) {
+    return res.json({ success: true, message: 'You are already subscribed to job alerts.' });
+  }
+
+  // Update settings
+  user.settings.emailNotifications.jobAlerts = true;
+  await user.save();
+
+  // Send subscription welcome email
+  const { sendSubscriptionEmail } = require('../utils/emailService');
+  try {
+    await sendSubscriptionEmail(user.email, user.fullName);
+  } catch (err) {
+    console.error('Failed to send subscription email:', err);
+  }
+
+  res.json({ success: true, message: 'Successfully subscribed to job alerts! Check your email.', user });
+});
+
 module.exports = {
   getProfile, updateProfile, uploadResume, uploadAvatar,
   toggleSaveJob, getSavedJobs, updateSettings, getDashboard, deactivateAccount,
+  subscribeJobAlerts,
 };

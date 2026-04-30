@@ -10,9 +10,14 @@ const createJob = asyncHandler(async (req, res) => {
     description, responsibilities, requirements, eligibilityCriteria, technicalSkills,
     softSkills, jobType, workMode, jobFunction, experienceLevel, batch,
     city, state, country, salary, duration, applyLink, skills, tags,
-    contactEmail, contactPhone } = req.body;
+    contactEmail, extraEmail, contactPhone } = req.body;
 
   let company;
+  if (!applyLink && !contactEmail && !extraEmail && !contactPhone) {
+    res.status(400);
+    throw new Error('Please provide an application link or at least one contact method (email or phone).');
+  }
+
   if (companyId) {
     company = await Company.findById(companyId);
     if (!company) { res.status(404); throw new Error('Company not found.'); }
@@ -23,10 +28,13 @@ const createJob = asyncHandler(async (req, res) => {
     }
   }
 
-  // ── Sync logo, website & increment openings onto the Company document ──────────────────
+  // ── Sync logo, website, location & increment openings onto the Company document ──────────────────
   const companyUpdates = { $inc: { openings: 1 } };
   if (companyLogo)    companyUpdates.logo    = companyLogo;
   if (companyWebsite) companyUpdates.website = companyWebsite;
+  if (city && !company.headquarters?.city) companyUpdates['headquarters.city'] = city;
+  if (state && !company.headquarters?.state) companyUpdates['headquarters.state'] = state;
+  if (country && !company.headquarters?.country) companyUpdates['headquarters.country'] = country;
   await Company.findByIdAndUpdate(company._id, companyUpdates);
 
   const job = await Job.create({
@@ -44,7 +52,7 @@ const createJob = asyncHandler(async (req, res) => {
     tags: Array.isArray(tags) ? tags : [],
     // Denormalized fields for quick display without DB joins
     companyName, companyWebsite, companyLocation, companyLogo,
-    contactEmail, contactPhone,
+    contactEmail, extraEmail, contactPhone,
   });
 
   await job.populate({ path: 'company', select: 'name logo isVerified' });
@@ -54,10 +62,8 @@ const createJob = asyncHandler(async (req, res) => {
     const User = require('../models/User');
     const Notification = require('../models/Notification');
     const { getIO } = require('../socket');
+    const { sendJobAlertEmail } = require('../utils/emailService');
 
-    // Find users whose preferences match this job
-    // Let's do a basic match: user's jobTypes preference includes the new job's type
-    // and either their preferred locations array is empty, or it includes the job's city.
     const query = {
       $and: [
         { 'preferences.jobTypes': { $in: [jobType] } },
@@ -70,7 +76,7 @@ const createJob = asyncHandler(async (req, res) => {
       ]
     };
 
-    const matchedUsers = await User.find(query).select('_id');
+    const matchedUsers = await User.find(query).select('_id email fullName settings');
 
     if (matchedUsers.length > 0) {
       const io = getIO();
@@ -83,10 +89,17 @@ const createJob = asyncHandler(async (req, res) => {
 
       const createdNotifications = await Notification.insertMany(notifications);
 
-      // Emit to each matched user's personal room
-      createdNotifications.forEach(notification => {
+      // Emit to each matched user's personal room & queue email if enabled
+      for (let i = 0; i < createdNotifications.length; i++) {
+        const notification = createdNotifications[i];
+        const user = matchedUsers[i];
         io.to(notification.user.toString()).emit('new_notification', notification);
-      });
+
+        if (user.settings?.emailNotifications?.jobAlerts) {
+          user.pendingJobAlerts.push(job._id);
+          await user.save();
+        }
+      }
     }
   } catch (error) {
     console.error('Error emitting notifications for new job:', error);
@@ -102,7 +115,8 @@ const getJobs = asyncHandler(async (req, res) => {
   const { search, jobType, workMode, location, skills, minSalary, maxSalary,
     batch, status = 'active', sort = '-createdAt', page = 1, limit = 10 } = req.query;
 
-  const filter = { status };
+  const filter = {};
+  if (status !== 'all') filter.status = status;
   if (jobType) filter.jobType = { $in: jobType.split(',') };
   if (workMode) filter.workMode = { $in: workMode.split(',') };
   if (location) filter['location.city'] = { $regex: location, $options: 'i' };
@@ -155,6 +169,12 @@ const updateJob = asyncHandler(async (req, res) => {
     res.status(403); throw new Error('Not authorized.');
   }
 
+  const { applyLink, contactEmail, extraEmail, contactPhone } = req.body;
+  if (!applyLink && !contactEmail && !extraEmail && !contactPhone) {
+    res.status(400);
+    throw new Error('Please provide an application link or at least one contact method (email or phone).');
+  }
+
   // Sync logo & website back onto the Company document
   const { companyLogo, companyWebsite, city } = req.body;
   const companyUpdates = {};
@@ -168,8 +188,18 @@ const updateJob = asyncHandler(async (req, res) => {
     req.body['location.city'] = city;
   }
 
+  const oldStatus = job.status;
   job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
     .populate({ path: 'company', select: 'name logo isVerified' });
+  
+  if (oldStatus !== job.status) {
+    if (job.status === 'active') {
+      await Company.findByIdAndUpdate(job.company._id || job.company, { $inc: { openings: 1 } });
+    } else if (oldStatus === 'active' && job.status !== 'active') {
+      await Company.findByIdAndUpdate(job.company._id || job.company, { $inc: { openings: -1 } });
+    }
+  }
+
   res.json({ success: true, message: 'Job updated.', data: job });
 });
 

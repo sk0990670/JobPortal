@@ -24,7 +24,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     Job.countDocuments(dateFilter),
     Application.countDocuments(dateFilter),
     User.countDocuments(dateFilter),
-    Job.countDocuments({ ...dateFilter, status: 'Active' }), // Assume 'Active' is the status string
+    Job.countDocuments({ ...dateFilter, status: 'active' }), // Changed from 'Active' to 'active'
   ]);
 
   // For the chart: jobs posted per day
@@ -51,14 +51,24 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     }
   }
 
-  const jobsByDayRaw = await Job.aggregate([
-    { $match: { createdAt: { $gte: chartStartDate, $lte: chartEndDate } } },
-    {
-      $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-        count: { $sum: 1 },
+  // Parallelize the heavy queries to improve load time
+  const [jobsByDayRaw, recentJobsRaw, latestJobs, latestApps] = await Promise.all([
+    Job.aggregate([
+      { $match: { createdAt: { $gte: chartStartDate, $lte: chartEndDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          count: { $sum: 1 },
+        },
       },
-    },
+    ]),
+    Job.find(dateFilter)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('company', 'name logo')
+      .lean(),
+    Job.find(dateFilter).sort({ createdAt: -1 }).limit(3).populate('company', 'name').lean(),
+    Application.find(dateFilter).sort({ createdAt: -1 }).limit(3).populate('applicant', 'fullName').populate('job', 'title').lean(),
   ]);
 
   // Determine number of days to show
@@ -91,21 +101,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     chartData.push({ day: dayName, count: match ? match.count : 0 });
   }
 
-  // Recent Jobs
-  const recentJobs = await Job.find(dateFilter)
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .populate('company', 'name logo')
-    .lean();
-
-  // For recent jobs, we also want the number of applications
-  for (let job of recentJobs) {
+  // Fetch application counts for recent jobs in parallel
+  const recentJobs = await Promise.all(recentJobsRaw.map(async (job) => {
     job.appCount = await Application.countDocuments({ job: job._id });
-  }
-
-  // Recent Activity (mix of latest jobs and applications)
-  const latestJobs = await Job.find(dateFilter).sort({ createdAt: -1 }).limit(3).populate('company', 'name').lean();
-  const latestApps = await Application.find(dateFilter).sort({ createdAt: -1 }).limit(3).populate('user', 'fullName').populate('job', 'title').lean();
+    return job;
+  }));
 
   const activity = [];
   latestJobs.forEach((job) => {
@@ -136,4 +136,31 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getDashboardStats };
+// @desc    Get all users for admin
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: 'user' })
+    .select('-password')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  // Apply privacy settings: mask email/phone if user hasn't allowed them
+  const maskedUsers = users.map(user => {
+    const showEmail = user.settings?.showEmail === true;
+    const showPhone = user.settings?.showPhone === true;
+    
+    return {
+      ...user,
+      email: showEmail ? user.email : 'Hidden by user',
+      phone: showPhone ? (user.phone || 'N/A') : 'Hidden by user',
+    };
+  });
+
+  res.json({
+    success: true,
+    data: maskedUsers,
+  });
+});
+
+module.exports = { getDashboardStats, getAllUsers };

@@ -16,7 +16,7 @@ const PostJobPage = () => {
   const logoRef = useRef(null);
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm({
-    defaultValues: { currency: 'INR', salaryPeriod: 'month', workMode: 'On-site', jobType: 'Internship', experienceLevel: 'Fresher', postedDate: new Date().toISOString().split('T')[0] },
+    defaultValues: { currency: 'INR', salaryPeriod: 'month', jobType: 'Internship', experienceLevel: 'Fresher', postedDate: new Date().toISOString().split('T')[0] },
   });
 
   // Salary comma formatting
@@ -64,11 +64,16 @@ const PostJobPage = () => {
   };
 
   const onSubmit = (data) => {
+    if (!data.applyLink && !data.contactEmail && !data.extraEmail && !data.contactPhone) {
+      toast.error('Please provide at least one contact method or an application link.');
+      return;
+    }
+    
     createMutation.mutate({
       ...data,
       city: data.companyLocation,
       companyLogo: logoUrl,
-      status: isDraft ? 'draft' : 'active',
+      status: isDraft ? 'draft' : data.status,
       'salary.min': parseNum(salaryMin),
       'salary.max': parseNum(salaryMax),
       'salary.period': data.salaryPeriod,
@@ -179,25 +184,27 @@ const PostJobPage = () => {
                       <div className="flex gap-3 mt-1">
                         {['On-site', 'Remote', 'Hybrid'].map(mode => (
                           <label key={mode} className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" {...register('workMode')} value={mode}
-                              className="w-4 h-4 text-primary-600 focus:ring-primary-400" />
+                            <input type="radio" {...register('workMode', { required: 'Work mode is required' })} value={mode}
+                              className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.workMode ? 'border-red-500' : ''}`} />
                             <span className="text-sm text-gray-700">{mode}</span>
                           </label>
                         ))}
                       </div>
+                      {errors.workMode && <p className="text-xs text-red-500 mt-1">{errors.workMode.message}</p>}
                     </div>
                     <div>
-                      <label className="label">Status</label>
+                      <label className="label">Status *</label>
                       <div className="flex gap-3 mt-1">
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status')} value="active" className="w-4 h-4 text-primary-600 focus:ring-primary-400" />
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="active" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
                           <span className="text-sm text-gray-700">Active</span>
                         </label>
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status')} value="closed" className="w-4 h-4 text-primary-600 focus:ring-primary-400" />
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="closed" className={`w-4 h-4 text-primary-600 focus:ring-primary-400 ${errors.status ? 'border-red-500' : ''}`} />
                           <span className="text-sm text-gray-700">Inactive</span>
                         </label>
                       </div>
+                      {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status.message}</p>}
                     </div>
                   </div>
 
@@ -270,19 +277,18 @@ const PostJobPage = () => {
                     <div className="space-y-3">
                       {/* Apply Link */}
                       <div>
-                        <label className="label">Application Link *</label>
+                        <label className="label">Application Link</label>
                         <input
-                          {...register('applyLink', { required: 'Application link is required' })}
+                          {...register('applyLink')}
                           placeholder="https://careers.example.com/apply/job-id"
-                          className={`input ${errors.applyLink ? 'input-error' : ''}`}
+                          className="input"
                         />
-                        {errors.applyLink && <p className="text-xs text-red-500 mt-1">{errors.applyLink.message}</p>}
                         <p className="text-xs text-gray-400 mt-1">Candidates will click this link to apply on your platform.</p>
                       </div>
 
                       {/* Contact — Email OR Phone */}
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Contact (provide at least one)</p>
-                      <div className="grid grid-cols-2 gap-3">
+                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Contact</p>
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="label">Contact Email</label>
                           <input
@@ -294,6 +300,18 @@ const PostJobPage = () => {
                             className={`input ${errors.contactEmail ? 'input-error' : ''}`}
                           />
                           {errors.contactEmail && <p className="text-xs text-red-500 mt-1">{errors.contactEmail.message}</p>}
+                        </div>
+                        <div>
+                          <label className="label">Extra Email (Optional)</label>
+                          <input
+                            {...register('extraEmail', {
+                              pattern: { value: /^\S+@\S+$/, message: 'Invalid email' },
+                            })}
+                            type="email"
+                            placeholder="extra@company.com"
+                            className={`input ${errors.extraEmail ? 'input-error' : ''}`}
+                          />
+                          {errors.extraEmail && <p className="text-xs text-red-500 mt-1">{errors.extraEmail.message}</p>}
                         </div>
                         <div>
                           <label className="label">Contact Phone</label>

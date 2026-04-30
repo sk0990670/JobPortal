@@ -11,6 +11,7 @@ import LandingPage from './pages/LandingPage';
 // Lazy-loaded pages
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SignUpPage = lazy(() => import('./pages/SignUpPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const OAuthCallback  = lazy(() => import('./pages/OAuthCallback'));
 const OTPVerifyPage  = lazy(() => import('./pages/OTPVerifyPage'));
 const JobListingPage = lazy(() => import('./pages/JobListingPage'));
@@ -30,6 +31,8 @@ const AdminJobs      = lazy(() => import('./pages/admin/AdminJobs'));
 const AdminResources = lazy(() => import('./pages/admin/AdminResources'));
 const EditJobPage    = lazy(() => import('./pages/admin/EditJobPage'));
 
+const AdminUsers     = lazy(() => import('./pages/admin/AdminUsers'));
+
 const Loading = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
@@ -43,6 +46,7 @@ const App = () => (
         {/* Auth routes (no layout) */}
         <Route path="/login"          element={<LoginPage />} />
         <Route path="/signup"         element={<SignUpPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/verify-otp"     element={<OTPVerifyPage />} />
         <Route path="/auth/callback"  element={<OAuthCallback />} />
 
@@ -69,7 +73,8 @@ const App = () => (
             {/* ── Admin routes ── */}
             <Route path="/admin/dashboard"  element={<AdminDashboard />} />
             <Route path="/admin/jobs"       element={<AdminJobs />} />
-            <Route path="/admin/resources"      element={<AdminResources />} />
+            <Route path="/admin/resources"  element={<AdminResources />} />
+            <Route path="/admin/users"      element={<AdminUsers />} />
             <Route path="/admin/jobs/:id/edit"  element={<EditJobPage />} />
           </Route>
         </Route>

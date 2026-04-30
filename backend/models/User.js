@@ -131,8 +131,14 @@ const userSchema = new mongoose.Schema(
         weeklySummary: { type: Boolean, default: true },
       },
       profileVisibility: { type: Boolean, default: true },
-      twoFactorAuth: { type: Boolean, default: false },
+      showEmail: { type: Boolean, default: false },
+      showPhone: { type: Boolean, default: false },
+      twoFactorEnabled: { type: Boolean, default: false },
+      twoFactorSecret: { type: String, default: null },
     },
+
+    // Pending job alerts
+    pendingJobAlerts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],
 
     // Saved jobs
     savedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Job' }],

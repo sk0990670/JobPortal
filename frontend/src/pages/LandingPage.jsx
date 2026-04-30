@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, BriefcaseBusiness, Briefcase, Star, ChevronRight, Building2, TrendingUp, Users, Award, ChevronDown } from 'lucide-react';
+import { Search, MapPin, BriefcaseBusiness, Briefcase, Star, ChevronRight, Building2, TrendingUp, Users, Award, ChevronDown, ArrowRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
+import { selectUser } from '../store/slices/authSlice';
 import { jobService } from '../services/jobService';
 import { companyService } from '../services/applicationService';
 import JobCard from '../components/common/JobCard';
@@ -23,6 +25,7 @@ const StatCard = ({ icon: Icon, color, value, label }) => (
 );
 
 const LandingPage = () => {
+  const user = useSelector(selectUser);
   const [search, setSearch]         = useState('');
   const [location, setLocation]     = useState('');
   const [jobType, setJobType]       = useState('');
@@ -237,12 +240,20 @@ const LandingPage = () => {
           <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to Kickstart Your Career?</h2>
           <p className="text-primary-100 mb-6 max-w-md mx-auto text-sm sm:text-base">Join thousands of students finding internships and jobs at top companies.</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link to="/signup" className="btn bg-white text-primary-700 hover:bg-primary-50 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
-              Get Started Free
-            </Link>
-            <Link to="/jobs" className="btn border border-white/50 text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
-              Browse Jobs
-            </Link>
+            {!user ? (
+              <>
+                <Link to="/signup" className="btn bg-white text-primary-700 hover:bg-primary-50 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
+                  Get Started Free
+                </Link>
+                <Link to="/jobs" className="btn border border-white/50 text-white hover:bg-white/10 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto">
+                  Browse Jobs
+                </Link>
+              </>
+            ) : (
+              <Link to="/jobs" className="btn bg-white text-primary-700 hover:bg-primary-50 font-semibold px-6 py-3 rounded-xl w-full sm:w-auto flex items-center justify-center gap-2">
+                Click here to Browse Jobs <ArrowRight size={18} />
+              </Link>
+            )}
           </div>
         </div>
       </section>

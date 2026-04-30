@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProfile, updateProfile, uploadResume, uploadAvatar, toggleSaveJob, getSavedJobs, updateSettings, getDashboard, deactivateAccount } = require('../controllers/userController');
+const { getProfile, updateProfile, uploadResume, uploadAvatar, toggleSaveJob, getSavedJobs, updateSettings, getDashboard, deactivateAccount, subscribeJobAlerts } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 const { uploadResume: uploadResumeMiddleware, uploadAvatar: uploadAvatarMiddleware, handleMulterError } = require('../middleware/uploadMiddleware');
 
@@ -14,6 +14,7 @@ router.post('/upload-avatar', uploadAvatarMiddleware.single('avatar'), handleMul
 router.post('/save-job/:jobId', toggleSaveJob);
 router.get('/saved-jobs', getSavedJobs);
 router.put('/settings', updateSettings);
+router.post('/job-alerts/subscribe', subscribeJobAlerts);
 router.get('/dashboard', getDashboard);
 router.delete('/deactivate', deactivateAccount);
 

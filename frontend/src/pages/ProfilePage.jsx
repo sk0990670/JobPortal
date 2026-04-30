@@ -6,6 +6,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { selectUser, updateUser } from '../store/slices/authSlice';
 import { getInitials, getAvatarUrl, formatDate } from '../utils/formatters';
 import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { authService } from '../services/authService';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { SkillsTab, EducationTab, ExperienceTab, ProjectsTab, CertificatesTab, PreferencesTab } from '../components/profile/ProfileTabs';
@@ -47,7 +49,8 @@ async function getCroppedFile(image, crop, fileName) {
   });
 }
 
-const PROFILE_TABS = ['Personal Information', 'Education', 'Skills', 'Experience', 'Projects', 'Certificates', 'Resume', 'Preferences'];
+const ALL_PROFILE_TABS = ['Personal Information', 'Education', 'Skills', 'Experience', 'Projects', 'Certificates', 'Resume', 'Preferences'];
+const ADMIN_TABS = ['Personal Information', 'Change Password'];
 
 const ProfilePage = () => {
   const user = useSelector(selectUser);
@@ -99,6 +102,14 @@ const ProfilePage = () => {
       toast.success('Avatar updated!');
     },
     onError: () => toast.error('Avatar upload failed'),
+  });
+
+  const { register: regPwd, handleSubmit: handlePwd, formState: { errors: pwdErrors }, reset: resetPwd } = useForm();
+  
+  const changePasswordMutation = useMutation({
+    mutationFn: (data) => authService.changePassword ? authService.changePassword(data) : userService.updateProfile(data),
+    onSuccess: () => { toast.success('Password changed successfully!'); resetPwd(); },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to change password'),
   });
 
   // Open crop modal when file is chosen
@@ -155,9 +166,6 @@ const ProfilePage = () => {
           <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
           <p className="text-sm text-gray-500 mt-0.5">Manage your personal information and professional details.</p>
         </div>
-        <a href="#" target="_blank" rel="noopener noreferrer" className="btn-secondary gap-1.5">
-          <ExternalLink size={14} /> View Public Profile
-        </a>
       </div>
 
       {/* Profile Header Card */}
@@ -181,9 +189,9 @@ const ProfilePage = () => {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{profile?.fullName}</h2>
-                <p className="text-gray-600">{profile?.headline || 'Add a headline'}</p>
+                {user?.role !== 'admin' && <p className="text-gray-600">{profile?.headline || 'Add a headline'}</p>}
                 <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                  {profile?.location && <span>📍 {profile.location}</span>}
+                  {user?.role !== 'admin' && profile?.location && <span>📍 {profile.location}</span>}
                   {profile?.email && <span>✉️ {profile.email}</span>}
                   {profile?.phone && <span>📞 {profile.phone}</span>}
                 </div>
@@ -195,39 +203,43 @@ const ProfilePage = () => {
               </button>
             </div>
             {/* Meta info */}
-            <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
-              {[
-                { label: 'Experience Level', value: profile?.experienceLevel },
-                { label: 'Current Status', value: profile?.currentStatus },
-                { label: 'Notice Period', value: profile?.noticePeriod },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-gray-50 rounded-lg p-2.5">
-                  <p className="text-xs text-gray-400">{label}</p>
-                  <p className="font-medium text-gray-900 text-sm mt-0.5">{value || '—'}</p>
-                </div>
-              ))}
-            </div>
+            {user?.role !== 'admin' && (
+              <div className="grid grid-cols-3 gap-4 mt-4 text-sm">
+                {[
+                  { label: 'Experience Level', value: profile?.experienceLevel },
+                  { label: 'Current Status', value: profile?.currentStatus },
+                  { label: 'Notice Period', value: profile?.noticePeriod },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-gray-50 rounded-lg p-2.5">
+                    <p className="text-xs text-gray-400">{label}</p>
+                    <p className="font-medium text-gray-900 text-sm mt-0.5">{value || '—'}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Profile completion */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center justify-between text-sm mb-1">
-            <span className="font-medium text-gray-700">Profile Strength</span>
-            <span className={`font-semibold ${profile?.profileCompletion >= 80 ? 'text-green-600' : profile?.profileCompletion >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
-              {profile?.profileCompletion >= 80 ? 'Strong' : profile?.profileCompletion >= 50 ? 'Medium' : 'Weak'}
-            </span>
+        {user?.role !== 'admin' && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between text-sm mb-1">
+              <span className="font-medium text-gray-700">Profile Strength</span>
+              <span className={`font-semibold ${profile?.profileCompletion >= 80 ? 'text-green-600' : profile?.profileCompletion >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
+                {profile?.profileCompletion >= 80 ? 'Strong' : profile?.profileCompletion >= 50 ? 'Medium' : 'Weak'}
+              </span>
+            </div>
+            <div className="w-full h-2 bg-gray-100 rounded-full">
+              <div className={`h-2 rounded-full transition-all ${profile?.profileCompletion >= 80 ? 'bg-green-500' : profile?.profileCompletion >= 50 ? 'bg-orange-400' : 'bg-red-400'}`}
+                style={{ width: `${profile?.profileCompletion || 0}%` }} />
+            </div>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full">
-            <div className={`h-2 rounded-full transition-all ${profile?.profileCompletion >= 80 ? 'bg-green-500' : profile?.profileCompletion >= 50 ? 'bg-orange-400' : 'bg-red-400'}`}
-              style={{ width: `${profile?.profileCompletion || 0}%` }} />
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto scrollbar-thin pb-1 border-b border-gray-200 mb-5">
-        {PROFILE_TABS.map(tab => (
+        {(user?.role === 'admin' ? ADMIN_TABS : ALL_PROFILE_TABS).map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors -mb-px ${
               activeTab === tab ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -235,9 +247,9 @@ const ProfilePage = () => {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-5">
+      <div className={`grid gap-5 ${user?.role === 'admin' ? 'lg:grid-cols-1' : 'lg:grid-cols-3'}`}>
         {/* Main Content */}
-        <div className="lg:col-span-2">
+        <div className={user?.role === 'admin' ? '' : 'lg:col-span-2'}>
           {activeTab === 'Personal Information' && (
             <div className="card-p">
               <h3 className="font-semibold text-gray-900 mb-4">Personal Information</h3>
@@ -246,8 +258,10 @@ const ProfilePage = () => {
                   {[
                     { label: 'Full Name', key: 'fullName', type: 'text' },
                     { label: 'Phone Number', key: 'phone', type: 'tel' },
-                    { label: 'Location', key: 'location', type: 'text' },
-                    { label: 'Headline', key: 'headline', type: 'text' },
+                    ...(user?.role !== 'admin' ? [
+                      { label: 'Location', key: 'location', type: 'text' },
+                      { label: 'Headline', key: 'headline', type: 'text' },
+                    ] : [])
                   ].map(({ label, key, type }) => (
                     <div key={key}>
                       <label className="label">{label}</label>
@@ -256,41 +270,46 @@ const ProfilePage = () => {
                         className="input" />
                     </div>
                   ))}
-                  <div className="col-span-2">
-                    <label className="label">Summary</label>
-                    <textarea value={formData.summary || ''} rows={4}
-                      onChange={e => setFormData(p => ({ ...p, summary: e.target.value }))}
-                      className="input resize-none" />
-                  </div>
-                  <div>
-                    <label className="label">Experience Level</label>
-                    <select value={formData.experienceLevel || ''} onChange={e => setFormData(p => ({ ...p, experienceLevel: e.target.value }))} className="input">
-                      {['Fresher', 'Junior', 'Mid-level', 'Senior', 'Lead'].map(l => <option key={l}>{l}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label">Current Status</label>
-                    <select value={formData.currentStatus || ''} onChange={e => setFormData(p => ({ ...p, currentStatus: e.target.value }))} className="input">
-                      {['Actively looking', 'Open to opportunities', 'Not looking'].map(s => <option key={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  {user?.role !== 'admin' && (
+                    <>
+                      <div className="col-span-2">
+                        <label className="label">Summary</label>
+                        <textarea value={formData.summary || ''} rows={4}
+                          onChange={e => setFormData(p => ({ ...p, summary: e.target.value }))}
+                          className="input resize-none" />
+                      </div>
+                      <div>
+                        <label className="label">Experience Level</label>
+                        <select value={formData.experienceLevel || ''} onChange={e => setFormData(p => ({ ...p, experienceLevel: e.target.value }))} className="input">
+                          {['Fresher', 'Junior', 'Mid-level', 'Senior', 'Lead'].map(l => <option key={l}>{l}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="label">Current Status</label>
+                        <select value={formData.currentStatus || ''} onChange={e => setFormData(p => ({ ...p, currentStatus: e.target.value }))} className="input">
+                          {['Actively looking', 'Open to opportunities', 'Not looking'].map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
                     { label: 'Full Name', value: profile?.fullName },
-                    { label: 'Date of Birth', value: profile?.dateOfBirth ? formatDate(profile.dateOfBirth) : '—' },
-                    { label: 'Email Address', value: profile?.email },
                     { label: 'Phone Number', value: profile?.phone || '—' },
-                    { label: 'Location', value: profile?.location || '—' },
-                    { label: 'Headline', value: profile?.headline || '—' },
+                    { label: 'Email Address', value: profile?.email },
+                    ...(user?.role !== 'admin' ? [
+                      { label: 'Location', value: profile?.location || '—' },
+                      { label: 'Headline', value: profile?.headline || '—' },
+                    ] : [])
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <p className="text-xs text-gray-400 mb-0.5">{label}</p>
                       <p className="font-medium text-gray-900">{value}</p>
                     </div>
                   ))}
-                  {profile?.summary && (
+                  {user?.role !== 'admin' && profile?.summary && (
                     <div className="col-span-2">
                       <p className="text-xs text-gray-400 mb-0.5">Summary</p>
                       <p className="text-gray-700 leading-relaxed">{profile.summary}</p>
@@ -298,6 +317,31 @@ const ProfilePage = () => {
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'Change Password' && (
+            <div className="card-p space-y-5">
+              <div>
+                <h2 className="font-bold text-gray-900 mb-1">Change Password</h2>
+                <p className="text-xs text-gray-500">Update your account password.</p>
+              </div>
+              <form onSubmit={handlePwd(data => changePasswordMutation.mutate(data))} className="space-y-4 max-w-sm">
+                <div>
+                  <label className="label">Current Password</label>
+                  <input {...regPwd('currentPassword', { required: 'Required' })} type="password"
+                    placeholder="••••••••••••" className={`input ${pwdErrors.currentPassword ? 'input-error' : ''}`} />
+                </div>
+                <div>
+                  <label className="label">New Password</label>
+                  <input {...regPwd('newPassword', { required: 'Required', minLength: { value: 8, message: 'Min 8 chars' } })} type="password"
+                    placeholder="New password" className={`input ${pwdErrors.newPassword ? 'input-error' : ''}`} />
+                  {pwdErrors.newPassword && <p className="text-xs text-red-500 mt-1">{pwdErrors.newPassword.message}</p>}
+                </div>
+                <button type="submit" disabled={changePasswordMutation.isLoading} className="btn-primary">
+                  {changePasswordMutation.isLoading ? 'Changing...' : 'Change Password'}
+                </button>
+              </form>
             </div>
           )}
 
@@ -365,80 +409,82 @@ const ProfilePage = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="space-y-4">
-          {/* Resume quick view */}
-          <div className="card-p">
-            <h3 className="font-semibold text-gray-900 mb-3">Resume</h3>
-            {profile?.resume?.url ? (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <span className="text-blue-600 text-xs font-bold">PDF</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{profile.resume.filename || 'Resume.pdf'}</p>
-                  {profile.resume.updatedAt && <p className="text-xs text-gray-400">Updated {formatDate(profile.resume.updatedAt)}</p>}
-                </div>
-              </div>
-            ) : <p className="text-sm text-gray-400">No resume uploaded.</p>}
-            <button onClick={() => resumeInputRef.current?.click()} className="btn-secondary w-full mt-3 text-sm">
-              {profile?.resume?.url ? 'Update Resume' : 'Upload Resume'}
-            </button>
-          </div>
-
-          {/* Social Profiles */}
-          <div className="card-p">
-            <h3 className="font-semibold text-gray-900 mb-3">Profiles</h3>
-            {[
-              { label: 'LinkedIn',  key: 'linkedin',  Logo: LinkedInLogo },
-              { label: 'GitHub',    key: 'github',    Logo: GitHubLogo   },
-              { label: 'Portfolio', key: 'portfolio', Logo: PortfolioLogo },
-            ].map(({ label, key, Logo }) => (
-              <div key={key} className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                  <Logo />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-400">{label}</p>
-                  {isEditing ? (
-                    <input value={formData.profiles?.[key] || ''}
-                      onChange={e => setFormData(p => ({ ...p, profiles: { ...p.profiles, [key]: e.target.value } }))}
-                      placeholder={`${label} URL`} className="input text-xs py-1" />
-                  ) : profile?.profiles?.[key] ? (
-                    <a href={profile.profiles[key]} target="_blank" rel="noopener noreferrer"
-                      className="text-sm text-primary-600 hover:underline truncate block">
-                      {profile.profiles[key]}
-                    </a>
-                  ) : (
-                    <span className="text-sm text-gray-400">Not added</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Account Status */}
-          <div className="card-p">
-            <h3 className="font-semibold text-gray-900 mb-3">Account Status</h3>
-            {(() => {
-              const pct   = profile?.profileCompletion || 0;
-              const label = pct >= 80 ? 'Strong' : pct >= 50 ? 'Medium' : 'Weak';
-              const color = pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-orange-500' : 'text-red-500';
-              const barColor = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-orange-400' : 'bg-red-400';
-              return (
-                <>
-                  <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle size={16} className={color} />
-                    <p className={`text-sm font-medium ${color}`}>Profile Strength: {label}</p>
+        {user?.role !== 'admin' && (
+          <div className="space-y-4">
+            {/* Resume quick view */}
+            <div className="card-p">
+              <h3 className="font-semibold text-gray-900 mb-3">Resume</h3>
+              {profile?.resume?.url ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-blue-600 text-xs font-bold">PDF</span>
                   </div>
-                  <div className="w-full h-2 bg-gray-100 rounded-full mb-1">
-                    <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{profile.resume.filename || 'Resume.pdf'}</p>
+                    {profile.resume.updatedAt && <p className="text-xs text-gray-400">Updated {formatDate(profile.resume.updatedAt)}</p>}
                   </div>
-                  <p className="text-xs text-gray-400">{pct}% complete</p>
-                </>
-              );
-            })()}
+                </div>
+              ) : <p className="text-sm text-gray-400">No resume uploaded.</p>}
+              <button onClick={() => resumeInputRef.current?.click()} className="btn-secondary w-full mt-3 text-sm">
+                {profile?.resume?.url ? 'Update Resume' : 'Upload Resume'}
+              </button>
+            </div>
+
+            {/* Social Profiles */}
+            <div className="card-p">
+              <h3 className="font-semibold text-gray-900 mb-3">Profiles</h3>
+              {[
+                { label: 'LinkedIn',  key: 'linkedin',  Logo: LinkedInLogo },
+                { label: 'GitHub',    key: 'github',    Logo: GitHubLogo   },
+                { label: 'Portfolio', key: 'portfolio', Logo: PortfolioLogo },
+              ].map(({ label, key, Logo }) => (
+                <div key={key} className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                    <Logo />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400">{label}</p>
+                    {isEditing ? (
+                      <input value={formData.profiles?.[key] || ''}
+                        onChange={e => setFormData(p => ({ ...p, profiles: { ...p.profiles, [key]: e.target.value } }))}
+                        placeholder={`${label} URL`} className="input text-xs py-1" />
+                    ) : profile?.profiles?.[key] ? (
+                      <a href={profile.profiles[key]} target="_blank" rel="noopener noreferrer"
+                        className="text-sm text-primary-600 hover:underline truncate block">
+                        {profile.profiles[key]}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400">Not added</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Account Status */}
+            <div className="card-p">
+              <h3 className="font-semibold text-gray-900 mb-3">Account Status</h3>
+              {(() => {
+                const pct   = profile?.profileCompletion || 0;
+                const label = pct >= 80 ? 'Strong' : pct >= 50 ? 'Medium' : 'Weak';
+                const color = pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-orange-500' : 'text-red-500';
+                const barColor = pct >= 80 ? 'bg-green-500' : pct >= 50 ? 'bg-orange-400' : 'bg-red-400';
+                return (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle size={16} className={color} />
+                      <p className={`text-sm font-medium ${color}`}>Profile Strength: {label}</p>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full mb-1">
+                      <div className={`h-2 rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400">{pct}% complete</p>
+                  </>
+                );
+              })()}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
 

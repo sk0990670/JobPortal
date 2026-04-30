@@ -51,6 +51,7 @@ const EditJobPage = () => {
       postedDate:      job.postedDate ? job.postedDate.slice(0,10) : new Date().toISOString().slice(0,10),
       applyLink:       job.applyLink || '',
       contactEmail:    job.contactEmail || '',
+      extraEmail:      job.extraEmail || '',
       contactPhone:    job.contactPhone || '',
     });
     // Salary
@@ -89,6 +90,11 @@ const EditJobPage = () => {
   });
 
   const onSubmit = (formData) => {
+    if (!formData.applyLink && !formData.contactEmail && !formData.extraEmail && !formData.contactPhone) {
+      toast.error('Please provide at least one contact method or an application link.');
+      return;
+    }
+
     updateMutation.mutate({
       ...formData,
       city: formData.companyLocation,
@@ -198,28 +204,30 @@ const EditJobPage = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Work Mode</label>
+                      <label className="label">Work Mode *</label>
                       <div className="flex gap-3 mt-1">
                         {['On-site','Remote','Hybrid'].map(mode => (
                           <label key={mode} className="flex items-center gap-1.5 cursor-pointer">
-                            <input type="radio" {...register('workMode')} value={mode} className="w-4 h-4 text-primary-600" />
+                            <input type="radio" {...register('workMode', { required: 'Work mode is required' })} value={mode} className={`w-4 h-4 text-primary-600 ${errors.workMode ? 'border-red-500' : ''}`} />
                             <span className="text-sm text-gray-700">{mode}</span>
                           </label>
                         ))}
                       </div>
+                      {errors.workMode && <p className="text-xs text-red-500 mt-1">{errors.workMode.message}</p>}
                     </div>
                     <div>
-                      <label className="label">Status</label>
+                      <label className="label">Status *</label>
                       <div className="flex gap-3 mt-1">
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status')} value="active" className="w-4 h-4 text-primary-600" />
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="active" className={`w-4 h-4 text-primary-600 ${errors.status ? 'border-red-500' : ''}`} />
                           <span className="text-sm text-gray-700">Active</span>
                         </label>
                         <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input type="radio" {...register('status')} value="closed" className="w-4 h-4 text-primary-600" />
+                          <input type="radio" {...register('status', { required: 'Status is required' })} value="closed" className={`w-4 h-4 text-primary-600 ${errors.status ? 'border-red-500' : ''}`} />
                           <span className="text-sm text-gray-700">Inactive</span>
                         </label>
                       </div>
+                      {errors.status && <p className="text-xs text-red-500 mt-1">{errors.status.message}</p>}
                     </div>
                   </div>
 
@@ -271,15 +279,17 @@ const EditJobPage = () => {
                     <h3 className="text-sm font-bold text-gray-800 mb-3">How to Apply</h3>
                     <div className="space-y-3">
                       <div>
-                        <label className="label">Application Link *</label>
-                        <input {...register('applyLink', { required: 'Application link is required' })}
-                          className={`input ${errors.applyLink ? 'input-error' : ''}`} />
-                        {errors.applyLink && <p className="text-xs text-red-500 mt-1">{errors.applyLink.message}</p>}
+                        <label className="label">Application Link</label>
+                        <input {...register('applyLink')} className="input" />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="label">Contact Email</label>
                           <input {...register('contactEmail')} type="email" className="input" />
+                        </div>
+                        <div>
+                          <label className="label">Extra Email</label>
+                          <input {...register('extraEmail')} type="email" className="input" />
                         </div>
                         <div>
                           <label className="label">Contact Phone</label>

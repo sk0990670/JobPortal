@@ -134,7 +134,8 @@ const CompaniesPage = () => {
                     <h3 className="font-bold text-gray-900 text-sm group-hover:text-primary-600 transition-colors">{company.name}</h3>
                     <p className="text-xs text-gray-500 mt-0.5">{company.industry}</p>
                     <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5 justify-center">
-                      <MapPin size={10} />{company.headquarters?.city && `${company.headquarters.city}, `}{company.headquarters?.country}
+                      <MapPin size={10} />
+                      {[company.headquarters?.city, company.headquarters?.state].filter(Boolean).join(', ') || 'Global'}
                     </p>
                     <div className="flex items-center justify-center mt-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1"><Briefcase size={11} />{company.openings} Openings</span>
@@ -155,7 +156,22 @@ const CompaniesPage = () => {
               <h3 className="font-bold text-gray-900">Don't find your dream company?</h3>
               <p className="text-sm text-gray-600">Get notified when new companies post jobs.</p>
             </div>
-            <button className="btn-primary gap-2">🔔 Create Job Alert</button>
+            <button 
+              onClick={async () => {
+                try {
+                  const api = (await import('../services/api')).default;
+                  const { data } = await api.post('/users/job-alerts/subscribe');
+                  const toast = (await import('react-hot-toast')).default;
+                  toast.success(data.message);
+                } catch (err) {
+                  const toast = (await import('react-hot-toast')).default;
+                  toast.error(err.response?.data?.message || 'Failed to subscribe');
+                }
+              }}
+              className="btn-primary gap-2"
+            >
+              🔔 Create Job Alert
+            </button>
           </div>
 
           {/* Pagination */}

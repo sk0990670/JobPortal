@@ -6,4 +6,8 @@ export const adminService = {
     const response = await api.get('/admin/stats', { params });
     return response.data;
   },
+  getUsers: async () => {
+    const response = await api.get('/admin/users');
+    return response.data;
+  },
 };

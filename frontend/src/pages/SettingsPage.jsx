@@ -29,8 +29,13 @@ const SettingsPage = () => {
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState('password');
   const [editingAccount, setEditingAccount] = useState(false);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [twoFaSecret, setTwoFaSecret] = useState('');
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [isSettingUp2FA, setIsSettingUp2FA] = useState(false);
   const [notifications, setNotifications] = useState({
     jobAlerts: user?.settings?.emailNotifications?.jobAlerts ?? true,
     applicationUpdates: user?.settings?.emailNotifications?.applicationUpdates ?? true,
@@ -38,20 +43,36 @@ const SettingsPage = () => {
     weeklySummary: user?.settings?.emailNotifications?.weeklySummary ?? true,
   });
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { fullName: user?.fullName, email: user?.email, phone: user?.phone, location: user?.location },
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: user?.settings?.profileVisibility ?? true,
+    showEmail: user?.settings?.showEmail ?? false,
+    showPhone: user?.settings?.showPhone ?? false,
+  });
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    values: { fullName: user?.fullName || '', email: user?.email || '', phone: user?.phone || '', location: user?.location || '' },
   });
   const { register: regPwd, handleSubmit: handlePwd, formState: { errors: pwdErrors }, reset: resetPwd } = useForm();
 
   const updateProfileMutation = useMutation({
     mutationFn: (data) => userService.updateProfile(data),
-    onSuccess: ({ data }) => { dispatch(updateUser(data.data)); toast.success('Account settings updated!'); setEditingAccount(false); },
+    onSuccess: ({ data }) => { 
+      dispatch(updateUser(data.data)); 
+      queryClient.invalidateQueries(['profile']);
+      toast.success('Account settings updated!'); 
+      setEditingAccount(false); 
+    },
     onError: () => toast.error('Update failed'),
   });
 
-  const updateNotificationsMutation = useMutation({
-    mutationFn: (settings) => userService.updateSettings({ emailNotifications: settings }),
-    onSuccess: () => toast.success('Notification settings saved!'),
+  const updateSettingsMutation = useMutation({
+    mutationFn: (newSettings) => userService.updateSettings({ ...user.settings, ...newSettings }),
+    onSuccess: (res) => {
+      const updatedSettings = res.data?.data || res.data;
+      dispatch(updateUser({ ...user, settings: updatedSettings }));
+      toast.success('Settings saved!');
+    },
+    onError: () => toast.error('Failed to save settings'),
   });
 
   const changePasswordMutation = useMutation({
@@ -60,10 +81,16 @@ const SettingsPage = () => {
     onError: (err) => toast.error(err.response?.data?.message || 'Failed to change password'),
   });
 
-  const handleToggle = (key) => {
-    const updated = { ...notifications, [key]: !notifications[key] };
-    setNotifications(updated);
-    updateNotificationsMutation.mutate(updated);
+  const handleToggle = (type, key) => {
+    if (type === 'notifications') {
+      const updated = { ...notifications, [key]: !notifications[key] };
+      setNotifications(updated);
+      updateSettingsMutation.mutate({ emailNotifications: updated });
+    } else if (type === 'privacy') {
+      const updated = { ...privacy, [key]: !privacy[key] };
+      setPrivacy(updated);
+      updateSettingsMutation.mutate(updated);
+    }
   };
 
   const notificationItems = [
@@ -174,7 +201,7 @@ const SettingsPage = () => {
                         <p className="text-xs text-gray-500">{desc}</p>
                       </div>
                     </div>
-                    <Toggle checked={notifications[key]} onChange={() => handleToggle(key)} />
+                    <Toggle checked={notifications[key]} onChange={() => handleToggle('notifications', key)} />
                   </div>
                 ))}
               </div>
@@ -209,9 +236,37 @@ const SettingsPage = () => {
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Two-Factor Authentication</p>
                   <p className="text-xs text-gray-500">Add an extra layer of security to your account.</p>
-                  <span className="badge-gray mt-1">Disabled</span>
+                  <span className={`mt-1 text-xs px-2 py-0.5 rounded-md font-medium ${user?.settings?.twoFactorAuth ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {user?.settings?.twoFactorAuth ? 'Enabled' : 'Disabled'}
+                  </span>
                 </div>
-                <button className="btn-secondary btn-sm">Enable 2FA</button>
+                <button 
+                  onClick={async () => {
+                    if (user?.settings?.twoFactorAuth) {
+                      if(window.confirm('Are you sure you want to disable 2FA?')) {
+                        try {
+                          await authService.disable2FA();
+                          dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: false } }));
+                          toast.success('2FA Disabled');
+                        } catch(e) {
+                          toast.error('Failed to disable 2FA');
+                        }
+                      }
+                    } else {
+                      try {
+                        const { data } = await authService.generate2FA();
+                        setQrCodeUrl(data.qrCodeUrl);
+                        setTwoFaSecret(data.secret);
+                        setShow2FAModal(true);
+                      } catch(e) {
+                        toast.error('Failed to start 2FA setup');
+                      }
+                    }
+                  }}
+                  className={`btn-sm ${user?.settings?.twoFactorAuth ? 'btn-danger' : 'btn-secondary'}`}
+                >
+                  {user?.settings?.twoFactorAuth ? 'Disable 2FA' : 'Enable 2FA'}
+                </button>
               </div>
             </div>
           )}
@@ -222,16 +277,16 @@ const SettingsPage = () => {
               <h2 className="font-bold text-gray-900 mb-4">Privacy Settings</h2>
               <div className="space-y-4">
                 {[
-                  { label: 'Profile Visibility', desc: 'Make your profile visible to recruiters and companies.', value: true },
-                  { label: 'Show Email', desc: 'Allow recruiters to see your email address.', value: false },
-                  { label: 'Show Phone', desc: 'Allow recruiters to see your phone number.', value: false },
-                ].map(({ label, desc, value }) => (
-                  <div key={label} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+                  { key: 'profileVisibility', label: 'Profile Visibility', desc: 'Make your profile visible to recruiters and companies.' },
+                  { key: 'showEmail', label: 'Show Email', desc: 'Allow recruiters to see your email address.' },
+                  { key: 'showPhone', label: 'Show Phone', desc: 'Allow recruiters to see your phone number.' },
+                ].map(({ key, label, desc }) => (
+                  <div key={key} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
                     <div>
                       <p className="font-medium text-gray-900 text-sm">{label}</p>
                       <p className="text-xs text-gray-500">{desc}</p>
                     </div>
-                    <Toggle checked={value} onChange={() => {}} />
+                    <Toggle checked={privacy[key]} onChange={() => handleToggle('privacy', key)} />
                   </div>
                 ))}
               </div>
@@ -254,6 +309,70 @@ const SettingsPage = () => {
           )}
         </div>
       </div>
+      {/* 2FA Setup Modal */}
+      {show2FAModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 overflow-hidden">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Set up Two-Factor Authentication</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              1. Scan this QR code with your authenticator app (like Google Authenticator, Authy, or AWS MFA).
+            </p>
+            <div className="flex justify-center mb-4 p-4 bg-gray-50 rounded-xl">
+              {qrCodeUrl ? <img src={qrCodeUrl} alt="2FA QR Code" className="w-48 h-48" /> : <div className="w-48 h-48 animate-pulse bg-gray-200"></div>}
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              2. Enter the 6-digit code generated by the app to confirm.
+            </p>
+            <input 
+              type="text" 
+              maxLength="6"
+              className="input text-center text-xl tracking-[0.5em] font-mono h-14"
+              placeholder="000000"
+              value={twoFaCode}
+              onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter' && twoFaCode.length === 6 && !isSettingUp2FA) {
+                  setIsSettingUp2FA(true);
+                  try {
+                    await authService.verify2FA({ token: twoFaCode });
+                    dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: true } }));
+                    toast.success('2FA successfully enabled! 🎉');
+                    setShow2FAModal(false);
+                    setTwoFaCode('');
+                  } catch (err) {
+                    toast.error(err.response?.data?.message || 'Invalid code. Try again.');
+                  } finally {
+                    setIsSettingUp2FA(false);
+                  }
+                }
+              }}
+            />
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShow2FAModal(false); setTwoFaCode(''); }} className="btn-secondary flex-1">Cancel</button>
+              <button 
+                disabled={twoFaCode.length !== 6 || isSettingUp2FA}
+                onClick={async () => {
+                  setIsSettingUp2FA(true);
+                  try {
+                    await authService.verify2FA({ token: twoFaCode });
+                    dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: true } }));
+                    toast.success('2FA successfully enabled! 🎉');
+                    setShow2FAModal(false);
+                    setTwoFaCode('');
+                  } catch (e) {
+                    toast.error(e.response?.data?.message || 'Invalid code. Try again.');
+                  } finally {
+                    setIsSettingUp2FA(false);
+                  }
+                }} 
+                className="btn-primary flex-1"
+              >
+                {isSettingUp2FA ? 'Verifying...' : 'Verify & Enable'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

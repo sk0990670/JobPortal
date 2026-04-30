@@ -291,51 +291,59 @@ const JobDetailPage = () => {
           {/* How to Apply */}
           <div className="card-p">
             <h3 className="font-semibold text-gray-900 mb-3">How to Apply</h3>
-            {job.applyLink ? (
-              <div className="space-y-3">
-                <p className="text-sm text-gray-500">Apply using the link below</p>
-                <a
-                  href={job.applyLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary-600 hover:underline truncate block"
-                >
-                  {job.applyLink}
-                </a>
-                <button
-                  onClick={handleApply}
-                  className="btn-primary w-full justify-center gap-2"
-                >
-                  Apply Now <ExternalLink size={14} />
-                </button>
-                <a
-                  href={job.applyLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-outline w-full justify-center gap-1.5 text-sm"
-                >
-                  View Full Link <ExternalLink size={13} />
-                </a>
-                {/* Contact info */}
-                {(job.contactEmail || job.contactPhone) && (
-                  <div className="border-t border-gray-100 pt-3 space-y-2">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</p>
-                    {job.contactEmail && (
-                      <a href={`mailto:${job.contactEmail}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
-                        <span className="text-base">✉️</span> {job.contactEmail}
-                      </a>
-                    )}
-                    {job.contactPhone && (
-                      <a href={`tel:${job.contactPhone}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
-                        <span className="text-base">📞</span> {job.contactPhone}
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={handleApply} className="btn-primary w-full justify-center">Apply via Portal</button>
-            )}
+            <div className="space-y-3">
+              {job.applyLink ? (
+                <>
+                  <p className="text-sm text-gray-500">Apply using the link below</p>
+                  <a
+                    href={job.applyLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary-600 hover:underline truncate block"
+                  >
+                    {job.applyLink}
+                  </a>
+                  <button
+                    onClick={handleApply}
+                    className="btn-primary w-full justify-center gap-2"
+                  >
+                    Apply Now <ExternalLink size={14} />
+                  </button>
+                  <a
+                    href={job.applyLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-outline w-full justify-center gap-1.5 text-sm"
+                  >
+                    View Full Link <ExternalLink size={13} />
+                  </a>
+                </>
+              ) : (
+                <button onClick={handleApply} className="btn-primary w-full justify-center">Apply via Portal</button>
+              )}
+
+              {/* Contact info */}
+              {(job.contactEmail || job.contactPhone || job.extraEmail) && (
+                <div className="border-t border-gray-100 pt-3 space-y-2 mt-2">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact Details</p>
+                  {job.contactEmail && (
+                    <a href={`mailto:${job.contactEmail}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+                      <span className="text-base">✉️</span> {job.contactEmail}
+                    </a>
+                  )}
+                  {job.extraEmail && (
+                    <a href={`mailto:${job.extraEmail}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+                      <span className="text-base">✉️</span> {job.extraEmail}
+                    </a>
+                  )}
+                  {job.contactPhone && (
+                    <a href={`https://wa.me/${job.contactPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-700 hover:text-green-600">
+                      <span className="text-base">💬</span> {job.contactPhone}
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* About Company */}
@@ -347,7 +355,11 @@ const JobDetailPage = () => {
               </div>
               <p className="text-sm text-gray-700">{job.company?.description || 'A leading company in its industry.'}</p>
             </div>
-            <Link to={`/companies/${job.company?._id}`} className="text-sm text-primary-600 hover:underline">View Company Profile →</Link>
+            {job.companyWebsite || job.company?.website ? (
+              <a href={job.companyWebsite || job.company?.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:underline">View Company Profile →</a>
+            ) : (
+              <Link to={`/companies/${job.company?._id}`} className="text-sm text-primary-600 hover:underline">View Company Profile →</Link>
+            )}
           </div>
 
           {/* Similar Jobs */}
@@ -400,7 +412,7 @@ const JobDetailPage = () => {
               )}
 
               {/* Contact */}
-              {(job.contactEmail || job.contactPhone) && (
+              {(job.contactEmail || job.contactPhone || job.extraEmail) && (
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4 space-y-2">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact</p>
                   {job.contactEmail && (
@@ -408,9 +420,14 @@ const JobDetailPage = () => {
                       <span>✉️</span> {job.contactEmail}
                     </a>
                   )}
+                  {job.extraEmail && (
+                    <a href={`mailto:${job.extraEmail}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
+                      <span>✉️</span> {job.extraEmail}
+                    </a>
+                  )}
                   {job.contactPhone && (
-                    <a href={`tel:${job.contactPhone}`} className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary-600">
-                      <span>📞</span> {job.contactPhone}
+                    <a href={`https://wa.me/${job.contactPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-700 hover:text-green-600">
+                      <span>💬</span> {job.contactPhone}
                     </a>
                   )}
                 </div>

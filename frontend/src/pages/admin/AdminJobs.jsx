@@ -14,7 +14,7 @@ const AdminJobs = () => {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-jobs-list', search, page],
-    queryFn: () => jobService.getJobs({ search, page, limit: 10 }).then(r => r.data),
+    queryFn: () => jobService.getJobs({ search, page, limit: 10, status: 'all' }).then(r => r.data),
   });
 
   const deleteMutation = useMutation({
@@ -96,8 +96,11 @@ const AdminJobs = () => {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{job.companyName || job.company?.name || '—'}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 flex gap-2">
                     <span className="badge-blue text-xs">{job.jobType}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${job.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                      {job.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500">
                     <span className="flex items-center gap-1"><MapPin size={11} />{job.city || job.location?.city || 'Remote'}</span>
