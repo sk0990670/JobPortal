@@ -2,7 +2,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Heart, Bell, ChevronDown, BriefcaseBusiness, LogOut, User,
-  Settings, LayoutDashboard, PlusCircle, Menu, X
+  Settings, LayoutDashboard, PlusCircle, Menu, X, Briefcase, BookOpen
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { selectIsAuthenticated, selectUser } from '../../store/slices/authSlice';
@@ -231,24 +231,49 @@ const Navbar = () => {
                     {dropdownOpen && (
                       <div className="absolute right-0 top-full pt-2 w-48 z-50 animate-fade-in">
                         <div className="card py-1 shadow-dropdown bg-white rounded-xl border border-gray-100">
-                          {user?.role === 'admin' && (
-                            <Link to="/post-job" onClick={() => setDropdownOpen(false)}
-                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary-600 font-medium hover:bg-primary-50 transition-colors">
-                              <PlusCircle size={15} /> Post a Job
-                            </Link>
+                          {user?.role === 'admin' ? (
+                            <>
+                              <Link to="/admin/dashboard" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <LayoutDashboard size={15} /> Dashboard
+                              </Link>
+                              <Link to="/post-job" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary-600 font-medium hover:bg-primary-50 transition-colors">
+                                <PlusCircle size={15} /> Post a Job
+                              </Link>
+                              <Link to="/admin/jobs" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <Briefcase size={15} /> Manage Jobs
+                              </Link>
+                              <Link to="/admin/resources" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <BookOpen size={15} /> Manage Resources
+                              </Link>
+                              <Link to="/admin/users" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <User size={15} /> Manage Users
+                              </Link>
+                              <Link to="/profile" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <User size={15} /> My Profile
+                              </Link>
+                            </>
+                          ) : (
+                            <>
+                              <Link to="/dashboard" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <LayoutDashboard size={15} /> Dashboard
+                              </Link>
+                              <Link to="/profile" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <User size={15} /> My Profile
+                              </Link>
+                              <Link to="/settings" onClick={() => setDropdownOpen(false)}
+                                className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                <Settings size={15} /> Settings
+                              </Link>
+                            </>
                           )}
-                          <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'} onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                            <LayoutDashboard size={15} /> Dashboard
-                          </Link>
-                          <Link to="/profile" onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                            <User size={15} /> My Profile
-                          </Link>
-                          <Link to="/settings" onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
-                            <Settings size={15} /> Settings
-                          </Link>
                           <hr className="my-1 border-gray-100" />
                           <button onClick={() => { setDropdownOpen(false); logout(); }}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
@@ -360,26 +385,49 @@ const Navbar = () => {
                   <hr className="mx-5 my-3 border-gray-100" />
                   <p className="px-5 py-1 text-[10px] font-bold tracking-wider text-gray-400 uppercase">Account</p>
 
-                  {user?.role === 'admin' && (
-                    <Link to="/post-job"
-                      className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">
-                      <PlusCircle size={16} /> Post a Job
-                    </Link>
+                  {user?.role === 'admin' ? (
+                    <>
+                      <Link to="/admin/dashboard"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <LayoutDashboard size={16} /> Dashboard
+                      </Link>
+                      <Link to="/post-job"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">
+                        <PlusCircle size={16} /> Post a Job
+                      </Link>
+                      <Link to="/admin/jobs"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Briefcase size={16} /> Manage Jobs
+                      </Link>
+                      <Link to="/admin/resources"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <BookOpen size={16} /> Manage Resources
+                      </Link>
+                      <Link to="/admin/users"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <User size={16} /> Manage Users
+                      </Link>
+                      <Link to="/profile"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <User size={16} /> My Profile
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/dashboard"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <LayoutDashboard size={16} /> Dashboard
+                      </Link>
+                      <Link to="/profile"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <User size={16} /> My Profile
+                      </Link>
+                      <Link to="/settings"
+                        className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        <Settings size={16} /> Settings
+                      </Link>
+                    </>
                   )}
-
-                  <Link
-                    to={user?.role === 'admin' ? '/admin/dashboard' : '/dashboard'}
-                    className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <LayoutDashboard size={16} /> Dashboard
-                  </Link>
-                  <Link to="/profile"
-                    className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <User size={16} /> My Profile
-                  </Link>
-                  <Link to="/settings"
-                    className="flex items-center gap-3 mx-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    <Settings size={16} /> Settings
-                  </Link>
                 </>
               )}
             </div>

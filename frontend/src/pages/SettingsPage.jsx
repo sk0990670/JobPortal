@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { User, Bell, Shield, Lock, Sliders, Link as LinkIcon, Trash2, Edit2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectUser, updateUser } from '../store/slices/authSlice';
@@ -29,6 +29,14 @@ const SettingsPage = () => {
   const user = useSelector(selectUser);
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
+
+  const { data: profileData } = useQuery({
+    queryKey: ['profile'],
+    queryFn: () => userService.getProfile().then(r => r.data),
+    staleTime: 2 * 60 * 1000,
+  });
+  const profile = profileData?.data || user;
+
   const [activeTab, setActiveTab] = useState('password');
   const [editingAccount, setEditingAccount] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
@@ -37,20 +45,20 @@ const SettingsPage = () => {
   const [twoFaCode, setTwoFaCode] = useState('');
   const [isSettingUp2FA, setIsSettingUp2FA] = useState(false);
   const [notifications, setNotifications] = useState({
-    jobAlerts: user?.settings?.emailNotifications?.jobAlerts ?? true,
-    applicationUpdates: user?.settings?.emailNotifications?.applicationUpdates ?? true,
-    marketingEmails: user?.settings?.emailNotifications?.marketingEmails ?? false,
-    weeklySummary: user?.settings?.emailNotifications?.weeklySummary ?? true,
+    jobAlerts: profile?.settings?.emailNotifications?.jobAlerts ?? true,
+    applicationUpdates: profile?.settings?.emailNotifications?.applicationUpdates ?? true,
+    marketingEmails: profile?.settings?.emailNotifications?.marketingEmails ?? false,
+    weeklySummary: profile?.settings?.emailNotifications?.weeklySummary ?? true,
   });
 
   const [privacy, setPrivacy] = useState({
-    profileVisibility: user?.settings?.profileVisibility ?? true,
-    showEmail: user?.settings?.showEmail ?? false,
-    showPhone: user?.settings?.showPhone ?? false,
+    profileVisibility: profile?.settings?.profileVisibility ?? true,
+    showEmail: profile?.settings?.showEmail ?? false,
+    showPhone: profile?.settings?.showPhone ?? false,
   });
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm({
-    values: { fullName: user?.fullName || '', email: user?.email || '', phone: user?.phone || '', location: user?.location || '' },
+    values: { fullName: profile?.fullName || '', email: profile?.email || '', phone: profile?.phone || '', location: profile?.location || '' },
   });
   const { register: regPwd, handleSubmit: handlePwd, formState: { errors: pwdErrors }, reset: resetPwd } = useForm();
 
@@ -66,10 +74,11 @@ const SettingsPage = () => {
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (newSettings) => userService.updateSettings({ ...user.settings, ...newSettings }),
+    mutationFn: (newSettings) => userService.updateSettings({ ...profile.settings, ...newSettings }),
     onSuccess: (res) => {
       const updatedSettings = res.data?.data || res.data;
-      dispatch(updateUser({ ...user, settings: updatedSettings }));
+      dispatch(updateUser({ ...profile, settings: updatedSettings }));
+      queryClient.invalidateQueries(['profile']);
       toast.success('Settings saved!');
     },
     onError: () => toast.error('Failed to save settings'),
@@ -166,10 +175,10 @@ const SettingsPage = () => {
               ) : (
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
-                    { label: 'Full Name', value: user?.fullName },
-                    { label: 'Email Address', value: user?.email },
-                    { label: 'Phone Number', value: user?.phone || '—' },
-                    { label: 'Location', value: user?.location || '—' },
+                    { label: 'Full Name', value: profile?.fullName },
+                    { label: 'Email Address', value: profile?.email },
+                    { label: 'Phone Number', value: profile?.phone || '—' },
+                    { label: 'Location', value: profile?.location || '—' },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-400 mb-0.5">{label}</p>
@@ -236,17 +245,18 @@ const SettingsPage = () => {
                 <div>
                   <p className="font-medium text-gray-900 text-sm">Two-Factor Authentication</p>
                   <p className="text-xs text-gray-500">Add an extra layer of security to your account.</p>
-                  <span className={`mt-1 text-xs px-2 py-0.5 rounded-md font-medium ${user?.settings?.twoFactorAuth ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                    {user?.settings?.twoFactorAuth ? 'Enabled' : 'Disabled'}
+                  <span className={`mt-1 text-xs px-2 py-0.5 rounded-md font-medium ${profile?.settings?.twoFactorAuth ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {profile?.settings?.twoFactorAuth ? 'Enabled' : 'Disabled'}
                   </span>
                 </div>
                 <button 
                   onClick={async () => {
-                    if (user?.settings?.twoFactorAuth) {
+                    if (profile?.settings?.twoFactorAuth) {
                       if(window.confirm('Are you sure you want to disable 2FA?')) {
                         try {
                           await authService.disable2FA();
-                          dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: false } }));
+                          dispatch(updateUser({ ...profile, settings: { ...profile.settings, twoFactorAuth: false } }));
+                          queryClient.invalidateQueries(['profile']);
                           toast.success('2FA Disabled');
                         } catch(e) {
                           toast.error('Failed to disable 2FA');
@@ -263,9 +273,9 @@ const SettingsPage = () => {
                       }
                     }
                   }}
-                  className={`btn-sm ${user?.settings?.twoFactorAuth ? 'btn-danger' : 'btn-secondary'}`}
+                  className={`btn-sm ${profile?.settings?.twoFactorAuth ? 'btn-danger' : 'btn-secondary'}`}
                 >
-                  {user?.settings?.twoFactorAuth ? 'Disable 2FA' : 'Enable 2FA'}
+                  {profile?.settings?.twoFactorAuth ? 'Disable 2FA' : 'Enable 2FA'}
                 </button>
               </div>
             </div>
@@ -335,7 +345,8 @@ const SettingsPage = () => {
                   setIsSettingUp2FA(true);
                   try {
                     await authService.verify2FA({ token: twoFaCode });
-                    dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: true } }));
+                    dispatch(updateUser({ ...profile, settings: { ...profile.settings, twoFactorAuth: true } }));
+                    queryClient.invalidateQueries(['profile']);
                     toast.success('2FA successfully enabled! 🎉');
                     setShow2FAModal(false);
                     setTwoFaCode('');
@@ -355,7 +366,8 @@ const SettingsPage = () => {
                   setIsSettingUp2FA(true);
                   try {
                     await authService.verify2FA({ token: twoFaCode });
-                    dispatch(updateUser({ ...user, settings: { ...user.settings, twoFactorAuth: true } }));
+                    dispatch(updateUser({ ...profile, settings: { ...profile.settings, twoFactorAuth: true } }));
+                    queryClient.invalidateQueries(['profile']);
                     toast.success('2FA successfully enabled! 🎉');
                     setShow2FAModal(false);
                     setTwoFaCode('');
