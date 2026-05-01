@@ -90,7 +90,7 @@ const JobCard = ({ job, compact = false }) => {
 
             <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2 text-xs text-gray-500">
               <span className="flex items-center gap-1">
-                <MapPin size={11} />{formatLocation(job.location) || 'Not specified'}
+                <MapPin size={11} />{job.companyLocation || 'Not specified'}
               </span>
               <span className="flex items-center gap-1">
                 <Briefcase size={11} />{job.workMode}
@@ -103,9 +103,6 @@ const JobCard = ({ job, compact = false }) => {
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <span className="badge-purple">{job.jobType}</span>
               {job.workMode && <span className="badge-gray">{job.workMode}</span>}
-              {job.skills?.slice(0, 2).map((skill, i) => (
-                <span key={i} className="badge-blue">{skill}</span>
-              ))}
             </div>
           </div>
         </div>

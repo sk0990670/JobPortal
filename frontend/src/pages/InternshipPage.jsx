@@ -160,7 +160,7 @@ const InternshipPage = () => {
                           </div>
                           <div className="flex items-center flex-wrap gap-x-4 gap-y-2 mt-2 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
-                              <MapPin size={11} />{formatLocation(job.location) || 'Not specified'}
+                              <MapPin size={11} />{formatLocation(job.companyLocation) || 'Not specified'}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock size={11} />{job.duration || 'Flexible duration'}
@@ -169,11 +169,7 @@ const InternshipPage = () => {
                               <Briefcase size={11} />{job.workMode || 'Work mode not specified'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                            {job.skills?.slice(0, 3).map((s, i) => (
-                              <span key={i} className="badge-blue">{s}</span>
-                            ))}
-                          </div>
+
                         </div>
                       </div>
                     </div>
@@ -213,7 +209,7 @@ const InternshipPage = () => {
                         </p>
                         <p className="text-xs text-gray-500 truncate">{job.company?.name || 'Unknown Company'}</p>
                         <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-                          <MapPin size={10} />{formatLocation(job.location) || 'Not specified'}
+                          <MapPin size={10} />{formatLocation(job.companyLocation) || 'Not specified'}
                         </div>
                       </div>
                     </Link>

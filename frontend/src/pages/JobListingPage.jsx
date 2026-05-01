@@ -12,21 +12,6 @@ const JOB_TYPES = ['Full-time', 'Internship', 'Part-time', 'Contract', 'Remote']
 const LOCATIONS = ['Bangalore', 'Chennai', 'Hyderabad', 'Pune', 'Mumbai', 'Delhi'];
 const BATCHES = ['2024', '2025', '2026', '2027', '2028 and above'];
 
-// Each category expands into a set of keywords sent to the backend
-const SKILL_CATEGORIES = {
-  'Backend Development':    ['Node.js', 'Express', 'Spring Boot', 'Django', 'Flask', 'Java', 'PHP', 'Ruby on Rails', 'Go', 'FastAPI', 'NestJS', 'ASP.NET', 'Laravel'],
-  'Frontend Development':  ['React', 'Angular', 'Vue.js', 'Next.js', 'TypeScript', 'JavaScript', 'HTML', 'CSS', 'Tailwind', 'Svelte', 'Redux'],
-  'Cloud Computing':       ['AWS', 'Azure', 'GCP', 'Google Cloud', 'Cloud', 'S3', 'EC2', 'Lambda', 'Azure DevOps', 'Kubernetes', 'Terraform', 'CloudFormation'],
-  'DevOps':                ['Docker', 'Kubernetes', 'Jenkins', 'CI/CD', 'Ansible', 'Terraform', 'Linux', 'Bash', 'GitHub Actions', 'ArgoCD', 'Helm', 'Prometheus', 'Grafana'],
-  'Data Science':          ['Python', 'Pandas', 'NumPy', 'Matplotlib', 'Scikit-learn', 'SQL', 'R', 'Tableau', 'Power BI', 'Statistics', 'Data Analysis', 'Jupyter'],
-  'Machine Learning':      ['TensorFlow', 'PyTorch', 'Keras', 'Scikit-learn', 'NLP', 'Deep Learning', 'Computer Vision', 'LLM', 'Hugging Face', 'OpenCV', 'BERT', 'GPT'],
-  'MLOps':                 ['MLflow', 'Kubeflow', 'Airflow', 'DVC', 'Model Deployment', 'Feature Store', 'BentoML', 'Seldon', 'SageMaker', 'Vertex AI'],
-  'Cyber Security':        ['Penetration Testing', 'SIEM', 'SOC', 'Ethical Hacking', 'Network Security', 'Cryptography', 'Vulnerability Assessment', 'Splunk', 'Wireshark', 'Kali Linux'],
-  'Mobile App Development':['Flutter', 'React Native', 'Kotlin', 'Swift', 'Android', 'iOS', 'Dart', 'Ionic', 'Xamarin'],
-  'Salesforce':            ['Salesforce', 'Apex', 'LWC', 'SOQL', 'Salesforce Admin', 'Sales Cloud', 'Service Cloud', 'CPQ', 'Einstein Analytics'],
-  'ServiceNow':            ['ServiceNow', 'ITSM', 'ITOM', 'Flow Designer', 'Service Catalog', 'GlideScript', 'ServiceNow Admin', 'CSM'],
-};
-
 const FilterCheckbox = ({ label, checked, onChange }) => (
   <label className="flex items-center gap-2.5 cursor-pointer group">
     <input type="checkbox" checked={checked} onChange={onChange}
@@ -40,12 +25,10 @@ const FilterPanelContent = ({
   selectedTypes, toggleType,
   location, setLocation,
   salary, setSalary,
-  selectedSkills, toggleSkill,
   selectedBatches, toggleBatch,
   data, setPage, clearAll,
   isFullTime, maxRange
 }) => {
-  const [skillSearch, setSkillSearch] = useState('');
   const [locSearch, setLocSearch] = useState('');
 
   const step = isFullTime ? 100000 : 5000;
@@ -53,7 +36,6 @@ const FilterPanelContent = ({
   const formatAmount = (v) => isFullTime ? `₹${(v / 100000).toFixed(0)}L` : `₹${(v / 1000).toFixed(0)}K`;
 
   const filteredLocations = LOCATIONS.filter(l => l.toLowerCase().includes(locSearch.toLowerCase()));
-  const filteredSkills = Object.entries(SKILL_CATEGORIES).filter(([cat]) => cat.toLowerCase().includes(skillSearch.toLowerCase()));
 
   // Reset salary when switching mode to avoid out of bounds
   useEffect(() => {
@@ -99,32 +81,6 @@ const FilterPanelContent = ({
         </div>
       </div>
 
-      {/* Skill Categories */}
-      <div className="mb-5">
-        <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Skills</h4>
-        <div className="relative mb-2">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={skillSearch} onChange={e => setSkillSearch(e.target.value)}
-            placeholder="Search skills..." className="input pl-8 py-1.5 text-xs" />
-        </div>
-        <div className="space-y-3 max-h-48 overflow-y-auto scrollbar-thin pr-2">
-          {filteredSkills.map(([category, keywords]) => (
-            <div key={category}>
-              <FilterCheckbox
-                label={category}
-                checked={selectedSkills.includes(category)}
-                onChange={() => toggleSkill(category)}
-              />
-              {selectedSkills.includes(category) && (
-                <p className="text-xs text-gray-400 mt-1 ml-6 leading-relaxed">
-                  {keywords.slice(0, 5).join(', ')}{keywords.length > 5 ? ` +${keywords.length - 5} more` : ''}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Batch */}
       <div className="mb-5">
         <h4 className="text-sm font-semibold text-gray-700 mb-2.5">Batch</h4>
@@ -145,15 +101,11 @@ const JobListingPage = () => {
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [location, setLocation] = useState(searchParams.get('location') || '');
   const [selectedTypes, setSelectedTypes] = useState([]);
-  const [selectedSkills, setSelectedSkills] = useState([]);
   const [selectedBatches, setSelectedBatches] = useState([]);
   const [salary, setSalary] = useState([0, 150000]);
   const [sort, setSort] = useState('-createdAt');
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
-
-  // Expand selected categories into their full keyword lists
-  const expandedKeywords = selectedSkills.flatMap(cat => SKILL_CATEGORIES[cat] ?? []);
 
   const isFullTime = selectedTypes.includes('Full-time');
   const maxRange = isFullTime ? 5000000 : 150000;
@@ -161,7 +113,6 @@ const JobListingPage = () => {
   const queryParams = {
     search, location, sort, page, limit: 10,
     ...(selectedTypes.length && { jobType: selectedTypes.join(',') }),
-    ...(expandedKeywords.length && { skills: expandedKeywords.join(',') }),
     ...(selectedBatches.length && { batch: selectedBatches.join(',') }),
     ...(salary[0] > 0 && { minSalary: salary[0] }),
     ...(salary[1] < maxRange && { maxSalary: salary[1] }),
@@ -175,15 +126,14 @@ const JobListingPage = () => {
   });
 
   const toggleType  = (type)  => setSelectedTypes(prev  => prev.includes(type)  ? prev.filter(t => t !== type)  : [...prev, type]);
-  const toggleSkill = (skill) => setSelectedSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
   const toggleBatch = (batch) => setSelectedBatches(prev => prev.includes(batch) ? prev.filter(b => b !== batch) : [...prev, batch]);
-  const clearAll = () => { setSelectedTypes([]); setSelectedSkills([]); setSelectedBatches([]); setSalary([0, 150000]); setLocation(''); setSearch(''); setPage(1); };
+  const clearAll = () => { setSelectedTypes([]); setSelectedBatches([]); setSalary([0, 150000]); setLocation(''); setSearch(''); setPage(1); };
 
   const activeFilterCount =
-    selectedTypes.length + selectedSkills.length + selectedBatches.length +
+    selectedTypes.length + selectedBatches.length +
     (salary[1] < maxRange ? 1 : 0) + (location ? 1 : 0);
 
-  const filterProps = { selectedTypes, toggleType, location, setLocation, salary, setSalary, selectedSkills, toggleSkill, selectedBatches, toggleBatch, data, setPage, clearAll, isFullTime, maxRange };
+  const filterProps = { selectedTypes, toggleType, location, setLocation, salary, setSalary, selectedBatches, toggleBatch, data, setPage, clearAll, isFullTime, maxRange };
 
   const containerRef = useRef(null);
 

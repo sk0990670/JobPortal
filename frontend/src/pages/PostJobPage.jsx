@@ -71,7 +71,7 @@ const PostJobPage = () => {
     
     createMutation.mutate({
       ...data,
-      city: data.companyLocation,
+      companyLocation: data.companyLocation || '',
       companyLogo: logoUrl,
       status: isDraft ? 'draft' : data.status,
       'salary.min': parseNum(salaryMin),

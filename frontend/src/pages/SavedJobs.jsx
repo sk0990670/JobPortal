@@ -89,7 +89,6 @@ const SavedJobs = () => {
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           <span className="badge-purple">{job.jobType}</span>
                           {job.workMode && <span className="badge-gray">{job.workMode}</span>}
-                          {job.skills?.slice(0, 2).map((s, i) => <span key={i} className="badge-blue">{s}</span>)}
                         </div>
                       </div>
                       <div className="flex flex-col sm:items-end gap-3 flex-shrink-0 mt-2 sm:mt-0">
@@ -109,7 +108,7 @@ const SavedJobs = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 font-medium flex-wrap">
-                      <span className="flex items-center gap-1"><MapPin size={12} /> {formatLocation(job.location)}</span>
+                      <span className="flex items-center gap-1"><MapPin size={12} /> {formatLocation(job.companyLocation)}</span>
                       <span className="text-gray-300">&bull;</span>
                       <span>{job.jobType}</span>
                       <span className="text-gray-300">&bull;</span>

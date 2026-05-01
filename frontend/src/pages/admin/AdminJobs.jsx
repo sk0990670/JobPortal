@@ -136,7 +136,7 @@ const AdminJobs = () => {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500">
-                    <span className="flex items-center gap-1"><MapPin size={11} />{job.city || job.location?.city || 'Remote'}</span>
+                    <span className="flex items-center gap-1"><MapPin size={11} />{job.companyLocation || 'Remote'}</span>
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">{formatRelativeDate(job.createdAt)}</td>
                   <td className="px-4 py-3">

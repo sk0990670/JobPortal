@@ -37,7 +37,7 @@ const EditJobPage = () => {
     reset({
       companyName:     job.companyName || job.company?.name || '',
       companyWebsite:  job.companyWebsite || job.company?.website || '',
-      companyLocation: job.companyLocation || job.city || job.location?.city || '',
+      companyLocation: job.companyLocation || '',
       title:           job.title || '',
       jobType:         job.jobType || 'Internship',
       experienceLevel: job.experienceLevel || 'Fresher',
@@ -97,7 +97,6 @@ const EditJobPage = () => {
 
     updateMutation.mutate({
       ...formData,
-      city: formData.companyLocation,
       companyLogo: logoUrl,
       'salary.min': parseNum(salaryMin),
       'salary.max': parseNum(salaryMax),

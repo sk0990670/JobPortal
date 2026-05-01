@@ -24,12 +24,6 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Job description is required'],
     },
-    responsibilities: [{ type: String }],
-    requirements: [{ type: String }],
-    eligibilityCriteria: [{ type: String }],
-    technicalSkills: [{ type: String }],
-    softSkills: [{ type: String }],
-    perks: [{ type: String }],
 
     // Classification
     jobType: {
@@ -61,14 +55,6 @@ const jobSchema = new mongoose.Schema(
       default: '2025/2026',
     },
 
-    // Location
-    location: {
-      city: { type: String },
-      state: { type: String },
-      country: { type: String, default: 'India' },
-      fullAddress: { type: String },
-    },
-
     // Compensation
     salary: {
       min: { type: Number },
@@ -85,9 +71,6 @@ const jobSchema = new mongoose.Schema(
     applicationDeadline: { type: Date },
     applyLink: { type: String },
     applyViaPortal: { type: Boolean, default: true },
-
-    // Skills required
-    skills: [{ type: String, trim: true }],
 
     // Status
     status: {
@@ -112,9 +95,6 @@ const jobSchema = new mongoose.Schema(
     contactEmail: { type: String },
     contactPhone: { type: String },
     extraEmail: { type: String },
-
-    // Tags for search
-    tags: [{ type: String }],
   },
   {
     timestamps: true,
@@ -125,8 +105,7 @@ const jobSchema = new mongoose.Schema(
 
 // Virtual: full location string
 jobSchema.virtual('locationString').get(function () {
-  const parts = [this.location?.city, this.location?.state].filter(Boolean);
-  return parts.join(', ');
+  return this.companyLocation || '';
 });
 
 // Virtual: salary display
@@ -140,12 +119,11 @@ jobSchema.virtual('salaryDisplay').get(function () {
 });
 
 // Indexes for efficient querying
-jobSchema.index({ title: 'text', description: 'text', 'location.city': 'text' });
+jobSchema.index({ title: 'text', description: 'text', companyLocation: 'text' });
 jobSchema.index({ status: 1 });
 jobSchema.index({ jobType: 1 });
-jobSchema.index({ 'location.city': 1 });
+jobSchema.index({ companyLocation: 1 });
 jobSchema.index({ 'salary.min': 1 });
-jobSchema.index({ skills: 1 });
 jobSchema.index({ isFeatured: 1 });
 jobSchema.index({ createdAt: -1 });
 

@@ -183,7 +183,7 @@ const JobDetailPage = () => {
                   )}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-2">
-                  <MapPin size={13} />{formatLocation(job.location)} • <Briefcase size={13} />{job.workMode}
+                  <MapPin size={13} />{job.companyLocation} • <Briefcase size={13} />{job.workMode}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -233,42 +233,6 @@ const JobDetailPage = () => {
                   <div className="space-y-1 text-sm text-gray-700 leading-relaxed">
                     {renderDescription(job.description)}
                   </div>
-                </div>
-              )}
-              {job.eligibilityCriteria?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Eligibility Criteria</h3>
-                  <ul className="list-disc list-inside space-y-1">{job.eligibilityCriteria.map((c, i) => <li key={i}>{c}</li>)}</ul>
-                </div>
-              )}
-              {job.technicalSkills?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Technical Skills</h3>
-                  <ul className="list-disc list-inside space-y-1">{job.technicalSkills.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-              {job.softSkills?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Soft Skills</h3>
-                  <ul className="list-disc list-inside space-y-1">{job.softSkills.map((s, i) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-              {job.requirements?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Requirements</h3>
-                  <ul className="list-disc list-inside space-y-1">{job.requirements.map((r, i) => <li key={i}>{r}</li>)}</ul>
-                </div>
-              )}
-              {job.responsibilities?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Key Responsibilities</h3>
-                  <ul className="list-disc list-inside space-y-1">{job.responsibilities.map((r, i) => <li key={i}>{r}</li>)}</ul>
-                </div>
-              )}
-              {job.skills?.length > 0 && (
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Skills Required</h3>
-                  <div className="flex flex-wrap gap-2">{job.skills.map((s, i) => <span key={i} className="badge-blue">{s}</span>)}</div>
                 </div>
               )}
             </div>

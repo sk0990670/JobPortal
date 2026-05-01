@@ -7,10 +7,12 @@ const Company = require('../models/Company');
 // @access  Private (recruiter/admin)
 const createJob = asyncHandler(async (req, res) => {
   const { title, companyId, companyName, companyWebsite, companyLocation, companyLogo,
-    description, responsibilities, requirements, eligibilityCriteria, technicalSkills,
-    softSkills, jobType, workMode, jobFunction, experienceLevel, batch,
-    city, state, country, salary, duration, applyLink, skills, tags,
-    contactEmail, extraEmail, contactPhone } = req.body;
+    description, jobType, workMode, jobFunction, experienceLevel, batch,
+    salary, duration, applyLink,
+    contactEmail, extraEmail, contactPhone,
+    city, state, country } = req.body;
+
+  const finalLocation = companyLocation || [city, state, country].filter(Boolean).join(', ');
 
   let company;
   if (!applyLink && !contactEmail && !extraEmail && !contactPhone) {
@@ -32,26 +34,16 @@ const createJob = asyncHandler(async (req, res) => {
   const companyUpdates = { $inc: { openings: 1 } };
   if (companyLogo)    companyUpdates.logo    = companyLogo;
   if (companyWebsite) companyUpdates.website = companyWebsite;
-  if (city && !company.headquarters?.city) companyUpdates['headquarters.city'] = city;
-  if (state && !company.headquarters?.state) companyUpdates['headquarters.state'] = state;
-  if (country && !company.headquarters?.country) companyUpdates['headquarters.country'] = country;
+  if (finalLocation && !company.headquarters?.city) companyUpdates['headquarters.city'] = finalLocation;
   await Company.findByIdAndUpdate(company._id, companyUpdates);
 
   const job = await Job.create({
     title, company: company._id, postedBy: req.user.id, description,
-    responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
-    requirements: Array.isArray(requirements) ? requirements : [],
-    eligibilityCriteria: Array.isArray(eligibilityCriteria) ? eligibilityCriteria : [],
-    technicalSkills: Array.isArray(technicalSkills) ? technicalSkills : [],
-    softSkills: Array.isArray(softSkills) ? softSkills : [],
     jobType, workMode, jobFunction, experienceLevel, batch,
-    location: { city, state, country: country || 'India', fullAddress: `${city || ''}, ${state || ''}` },
     salary: { min: salary?.min, max: salary?.max, currency: salary?.currency || 'INR', period: salary?.period || 'month' },
     duration, applyLink,
-    skills: Array.isArray(skills) ? skills : skills?.split(',').map(s => s.trim()) || [],
-    tags: Array.isArray(tags) ? tags : [],
     // Denormalized fields for quick display without DB joins
-    companyName, companyWebsite, companyLocation, companyLogo,
+    companyName, companyWebsite, companyLocation: finalLocation, companyLogo,
     contactEmail, extraEmail, contactPhone,
   });
 
@@ -70,7 +62,7 @@ const createJob = asyncHandler(async (req, res) => {
         {
           $or: [
             { 'preferences.locations': { $size: 0 } },
-            { 'preferences.locations': { $in: [city, state].filter(Boolean) } }
+            { 'preferences.locations': { $in: [finalLocation].filter(Boolean) } }
           ]
         }
       ]
@@ -119,8 +111,7 @@ const getJobs = asyncHandler(async (req, res) => {
   if (status !== 'all') filter.status = status;
   if (jobType) filter.jobType = { $in: jobType.split(',') };
   if (workMode) filter.workMode = { $in: workMode.split(',') };
-  if (location) filter['location.city'] = { $regex: location, $options: 'i' };
-  if (skills) filter.skills = { $in: skills.split(',').map(s => new RegExp(s.trim(), 'i')) };
+  if (location) filter.companyLocation = { $regex: location, $options: 'i' };
   if (batch) filter.batch = { $regex: batch, $options: 'i' };
   if (minSalary) filter['salary.min'] = { $gte: Number(minSalary) };
   if (maxSalary) filter['salary.max'] = { $lte: Number(maxSalary) };
@@ -153,8 +144,8 @@ const getJobById = asyncHandler(async (req, res) => {
 
   const similarJobs = await Job.find({
     _id: { $ne: job._id }, status: 'active',
-    $or: [{ jobFunction: job.jobFunction }, { skills: { $in: job.skills } }],
-  }).populate({ path: 'company', select: 'name logo' }).limit(4).select('title company location salary jobType workMode');
+    $or: [{ jobFunction: job.jobFunction }, { companyLocation: job.companyLocation }],
+  }).populate({ path: 'company', select: 'name logo' }).limit(4).select('title company companyLocation salary jobType workMode');
 
   res.json({ success: true, data: job, similarJobs });
 });
@@ -176,16 +167,12 @@ const updateJob = asyncHandler(async (req, res) => {
   }
 
   // Sync logo & website back onto the Company document
-  const { companyLogo, companyWebsite, city } = req.body;
+  const { companyLogo, companyWebsite } = req.body;
   const companyUpdates = {};
   if (companyLogo)    companyUpdates.logo    = companyLogo;
   if (companyWebsite) companyUpdates.website = companyWebsite;
   if (Object.keys(companyUpdates).length) {
     await Company.findByIdAndUpdate(job.company, companyUpdates);
-  }
-
-  if (city) {
-    req.body['location.city'] = city;
   }
 
   const oldStatus = job.status;
@@ -232,7 +219,7 @@ const uploadCompanyLogo = asyncHandler(async (req, res) => {
 const getFeaturedJobs = asyncHandler(async (req, res) => {
   const jobs = await Job.find({ status: 'active', isFeatured: true })
     .populate({ path: 'company', select: 'name logo isVerified' })
-    .sort('-createdAt').limit(8).select('title company location jobType workMode salary createdAt tags');
+    .sort('-createdAt').limit(8).select('title company companyLocation jobType workMode salary createdAt');
   res.json({ success: true, count: jobs.length, data: jobs });
 });
 
@@ -243,7 +230,7 @@ const getInternships = asyncHandler(async (req, res) => {
   const { search, location, duration, minSalary, maxSalary, sort = '-createdAt', page = 1, limit = 10 } = req.query;
   const filter = { status: 'active', jobType: 'Internship' };
   if (search) filter.$or = [{ title: { $regex: search, $options: 'i' } }];
-  if (location) filter['location.city'] = { $regex: location, $options: 'i' };
+  if (location) filter.companyLocation = { $regex: location, $options: 'i' };
   if (duration) filter.duration = { $regex: duration, $options: 'i' };
   if (minSalary) filter['salary.min'] = { $gte: Number(minSalary) };
   if (maxSalary) filter['salary.max'] = { $lte: Number(maxSalary) };
