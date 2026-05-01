@@ -5,7 +5,6 @@ import { useForm, Controller } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { jobService } from '../services/jobService';
 import toast from 'react-hot-toast';
-import { RichTextEditor } from '../components/common/RichTextEditor';
 
 const PostJobPage = () => {
   const navigate = useNavigate();
@@ -25,6 +24,21 @@ const PostJobPage = () => {
   const [salaryMax, setSalaryMax] = useState('');
   const formatNum = (val) => val.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   const parseNum  = (val) => val.replace(/,/g, '');
+
+  // Bold toolbar for description
+  const descRef = useRef(null);
+  const handleDescKeyDown = (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      e.preventDefault();
+      const el = descRef.current;
+      const start = el.selectionStart;
+      const end   = el.selectionEnd;
+      const selected = el.value.substring(start, end);
+      const newVal = el.value.substring(0, start) + '**' + selected + '**' + el.value.substring(end);
+      setValue('description', newVal);
+      setTimeout(() => { el.selectionStart = start + 2; el.selectionEnd = end + 2; el.focus(); }, 0);
+    }
+  };
 
   const preview = watch(['companyName', 'title', 'jobType', 'experienceLevel', 'workMode', 'companyLocation']);
 
@@ -210,18 +224,17 @@ const PostJobPage = () => {
 
                   {/* Job Description */}
                   <div>
-                    <label className="label">Job Description <span className="text-red-500">*</span></label>
-                    <Controller
-                      name="description"
-                      control={control}
-                      rules={{ required: 'Description is required' }}
-                      render={({ field }) => (
-                        <RichTextEditor
-                          value={field.value || ''}
-                          onChange={field.onChange}
-                          placeholder="Write a detailed job description..."
-                        />
-                      )}
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="label mb-0">Job Description <span className="text-red-500">*</span></label>
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded font-mono">Ctrl+B = <b>bold</b></span>
+                    </div>
+                    <textarea
+                      {...register('description', { required: 'Description is required' })}
+                      ref={(e) => { register('description').ref(e); descRef.current = e; }}
+                      onKeyDown={handleDescKeyDown}
+                      onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                      placeholder="Write a detailed job description... (Select text and press Ctrl+B to bold)"
+                      className={`input desc-textarea font-mono text-sm ${errors.description ? 'input-error' : ''}`}
                     />
                     {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
                   </div>

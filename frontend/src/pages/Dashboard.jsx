@@ -6,7 +6,6 @@ import { Briefcase, Users, Calendar, Bookmark, Clock, ChevronRight, CheckCircle2
 import { formatSalary, formatLocation, formatRelativeDate, getAvatarUrl, getStatusColor } from '../utils/formatters';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../store/slices/authSlice';
-import { StatCardSkeleton, JobCardSkeleton } from '../components/common/SkeletonLoaders';
 
 const StatCard = ({ to, icon: Icon, color, value, label, disabled }) => (
   <Link to={disabled ? '#' : to} className={`card-p flex items-center gap-4 relative transition-all duration-200 ${disabled ? 'cursor-not-allowed opacity-90' : 'hover:-translate-y-0.5 hover:shadow-md'}`}>
@@ -61,7 +60,7 @@ const Dashboard = () => {
       {/* Stats Grid */}
       {isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />)}
+          {Array(4).fill(0).map((_, i) => <div key={i} className="card-p h-24 skeleton" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

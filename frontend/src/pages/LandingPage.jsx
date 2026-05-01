@@ -158,11 +158,11 @@ const LandingPage = () => {
                         <span className={jobType ? 'text-gray-900 font-medium' : 'text-gray-400'}>
                           {jobType || 'Select Job Type'}
                         </span>
-                        <ChevronDown size={14} className="text-gray-400 flex-shrink-0 ml-auto" />
+                        <ChevronDown size={14} className={`text-gray-400 flex-shrink-0 ml-auto transition-transform duration-200 ${jobTypeOpen ? 'rotate-180' : ''}`} />
                       </button>
 
                       {jobTypeOpen && (
-                        <div className="absolute top-full left-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 animate-fade-in">
+                        <div className="absolute bottom-full left-0 mb-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-1 animate-fade-in">
                           {['Full-time', 'Internship', 'Part-time', 'Remote'].map(type => (
                             <button
                               key={type}
