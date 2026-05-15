@@ -6,19 +6,13 @@ import { jobService } from '../services/jobService';
 import { formatSalary, formatRelativeDate, formatLocation, getAvatarUrl } from '../utils/formatters';
 import Pagination from '../components/common/Pagination';
 
-const CATEGORIES = ['All Categories', 'Software Engineering', 'Data Science', 'Product Management', 'Design', 'Marketing', 'Finance'];
 const LOCATIONS = ['All Locations', 'Bangalore', 'Chennai', 'Hyderabad', 'Mumbai', 'Delhi', 'Pune'];
-const DURATIONS = ['All Durations', '1-3 Months', '3-6 Months', '6-12 Months', '12+ Months'];
-const START_PERIODS = ['All Start Periods', 'Immediate', 'Summer', 'Winter'];
 const STIPEND_TYPES = ['All Stipend Types', 'Paid', 'Unpaid'];
 const PPO_OPTIONS = ['All PPO Options', 'PPO Available'];
 
 const InternshipPage = () => {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
   const [location, setLocation] = useState('');
-  const [duration, setDuration] = useState('');
-  const [startPeriod, setStartPeriod] = useState('');
   const [isPaid, setIsPaid] = useState('');
   const [ppo, setPpo] = useState('');
   const [sort, setSort] = useState('-createdAt');
@@ -30,10 +24,7 @@ const InternshipPage = () => {
     limit: 10, 
     sort,
     isFeatured: false, // Ensure organic search results only
-    ...(category && { category }),
     ...(location && { location }),
-    ...(duration && { duration }),
-    ...(startPeriod && { startPeriod }),
     ...(isPaid === 'Paid' ? { minSalary: 1 } : isPaid === 'Unpaid' ? { maxSalary: 0 } : {}),
     ...(ppo === 'PPO Available' && { ppoAvailable: true }),
   };
@@ -50,6 +41,16 @@ const InternshipPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: resourceData } = useQuery({
+    queryKey: ['resources-public'],
+    queryFn: async () => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/resources?limit=10`);
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const internshipGuides = resourceData?.data?.filter(r => r.isPublished).slice(0, 3) || [];
+
   return (
     <div className="page-container py-6 animate-fade-in">
       <div className="mb-6">
@@ -57,7 +58,7 @@ const InternshipPage = () => {
         <p className="text-gray-500 mt-0.5">Discover and apply to the best internships to kickstart your career.</p>
       </div>
 
-      {/* Search + Filter Bar */}
+      {/* Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
         <div className="flex-1 flex items-center gap-2 input py-2">
           <Search size={16} className="text-gray-400 flex-shrink-0" />
@@ -65,16 +66,12 @@ const InternshipPage = () => {
             placeholder="Search internships by role, skills or company..."
             className="flex-1 outline-none text-sm bg-transparent py-0 leading-none h-full" />
         </div>
-        <button className="btn-secondary gap-2 hidden sm:flex"><Filter size={16} />Advanced</button>
       </div>
 
       {/* Filter Dropdowns Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 w-full">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 w-full">
         {[
-          { label: 'Category', options: CATEGORIES, value: category, onChange: setCategory },
           { label: 'Location', options: LOCATIONS, value: location, onChange: setLocation },
-          { label: 'Duration', options: DURATIONS, value: duration, onChange: setDuration },
-          { label: 'Start Period', options: START_PERIODS, value: startPeriod, onChange: setStartPeriod },
           { label: 'Stipend Type', options: STIPEND_TYPES, value: isPaid, onChange: setIsPaid },
           { label: 'PPO Option', options: PPO_OPTIONS, value: ppo, onChange: setPpo },
         ].map(({ label, options, value, onChange }) => (
@@ -240,21 +237,21 @@ const InternshipPage = () => {
           <div className="card-p">
             <div className="section-header mb-3">
               <h3 className="font-semibold text-gray-900">Internship Guide</h3>
-              <button className="section-link text-xs">View all</button>
+              <Link to="/resources" className="section-link text-xs">View all</Link>
             </div>
-            {[
-              { title: 'How to Find the Right Internship', time: '5 min read' },
-              { title: 'Resume Tips for Internship Applications', time: '7 min read' },
-              { title: 'Ace Your Internship Interview', time: '6 min read' },
-            ].map((g, i) => (
-              <Link key={i} to="/resources" className="flex items-center gap-2 py-2 hover:text-primary-600 transition-colors group">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700 group-hover:text-primary-600">{g.title}</p>
-                  <p className="text-xs text-gray-400">{g.time}</p>
-                </div>
-              </Link>
-            ))}
+            {internshipGuides.length > 0 ? (
+              internshipGuides.map((guide) => (
+                <Link key={guide._id} to="/resources" className="flex items-center gap-2 py-2 hover:text-primary-600 transition-colors group">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-700 group-hover:text-primary-600 line-clamp-1">{guide.title}</p>
+                    <p className="text-xs text-gray-400">{guide.readTime} min read</p>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <p className="text-xs text-gray-500 py-2">No guides available currently.</p>
+            )}
           </div>
         </div>
       </div>
