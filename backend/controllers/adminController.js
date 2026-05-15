@@ -163,4 +163,85 @@ const getAllUsers = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getDashboardStats, getAllUsers };
+// @desc    Get real system status for admin dashboard
+// @route   GET /api/admin/system-status
+// @access  Private/Admin
+const getSystemStatus = asyncHandler(async (req, res) => {
+  const mongoose = require('mongoose');
+
+  // ── Database ──────────────────────────────────────────────────────────────
+  const dbState = mongoose.connection.readyState;
+  // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+  const dbStateMap = { 0: 'Disconnected', 1: 'Connected', 2: 'Connecting', 3: 'Disconnecting' };
+  const dbStatus   = dbStateMap[dbState] || 'Unknown';
+  const dbHealthy  = dbState === 1;
+
+  // Measure a lightweight DB ping for latency
+  let dbLatencyMs = null;
+  if (dbHealthy) {
+    const t0 = Date.now();
+    await mongoose.connection.db.admin().ping();
+    dbLatencyMs = Date.now() - t0;
+  }
+
+  // ── Process / Runtime ─────────────────────────────────────────────────────
+  const uptimeSeconds = Math.floor(process.uptime());
+  const uptimeHuman = uptimeSeconds < 60
+    ? `${uptimeSeconds}s`
+    : uptimeSeconds < 3600
+      ? `${Math.floor(uptimeSeconds / 60)}m ${uptimeSeconds % 60}s`
+      : `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m`;
+
+  // ── Memory ────────────────────────────────────────────────────────────────
+  const mem = process.memoryUsage();
+  const toMB = (bytes) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+
+  // ── Environment / K8s awareness ───────────────────────────────────────────
+  // On K8s, HOSTNAME = pod name; REPLICAS can be set via ConfigMap
+  const environment  = process.env.NODE_ENV || 'development';
+  const podName      = process.env.HOSTNAME || 'local';
+  const replicas     = process.env.REPLICAS || '1';   // set via K8s ConfigMap
+  const deployTarget = process.env.DEPLOY_TARGET || 'vercel'; // 'vercel' | 'k8s'
+
+  // ── API Latency (measured by this request itself) ─────────────────────────
+  // req._startTime is set by express if trust proxy is on; fallback to Date.now
+  const apiLatencyMs = req._startTime ? Date.now() - req._startTime : null;
+
+  // ── Overall health ────────────────────────────────────────────────────────
+  const healthy = dbHealthy;
+
+  res.json({
+    success: true,
+    data: {
+      overall: healthy ? 'healthy' : 'degraded',
+      timestamp: new Date().toISOString(),
+      database: {
+        status:    dbStatus,
+        healthy:   dbHealthy,
+        latencyMs: dbLatencyMs,
+        host:      mongoose.connection.host || 'N/A',
+      },
+      server: {
+        uptime:      uptimeHuman,
+        uptimeRaw:   uptimeSeconds,
+        nodeVersion: process.version,
+        environment,
+        deployTarget,
+        podName,
+        replicas,
+      },
+      memory: {
+        heapUsed:  toMB(mem.heapUsed),
+        heapTotal: toMB(mem.heapTotal),
+        rss:       toMB(mem.rss),
+        external:  toMB(mem.external),
+        heapPct:   Math.round((mem.heapUsed / mem.heapTotal) * 100),
+      },
+      api: {
+        latencyMs: apiLatencyMs,
+      },
+    },
+  });
+});
+
+module.exports = { getDashboardStats, getAllUsers, getSystemStatus };

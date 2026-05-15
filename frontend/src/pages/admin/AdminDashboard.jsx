@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Briefcase, BookOpen, PlusCircle, Edit3, Users,
-  TrendingUp, TrendingDown, MoreHorizontal, FileText, Loader2, Calendar, Server, CheckCircle2
+  TrendingUp, TrendingDown, MoreHorizontal, FileText, Loader2, Calendar, Server, CheckCircle2,
+  Database, Clock, Cpu, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import { getAvatarUrl, formatRelativeDate } from '../../utils/formatters';
@@ -26,6 +27,33 @@ const AdminDashboard = () => {
   const chartData = data?.chartData || [];
   const recentJobs = data?.recentJobs || [];
   const activity = data?.activity || [];
+
+  // ── Real System Status ─────────────────────────────────────────────────────
+  const [sysStatus, setSysStatus] = useState(null);
+  const [sysLoading, setSysLoading] = useState(true);
+  const [sysError, setSysError] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
+
+  const fetchSystemStatus = async () => {
+    try {
+      const res = await adminService.getSystemStatus();
+      setSysStatus(res.data);
+      setSysError(false);
+      setLastRefreshed(new Date());
+    } catch {
+      setSysError(true);
+    } finally {
+      setSysLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSystemStatus();
+    const interval = setInterval(fetchSystemStatus, 30000); // refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const healthy = sysStatus?.overall === 'healthy';
 
   return (
     <div className="animate-fade-in space-y-8 pb-12">
@@ -318,33 +346,110 @@ const AdminDashboard = () => {
             {/* Right Column: System Status + Recent Activity */}
             <div className="lg:col-span-1 flex flex-col gap-6">
               
-              {/* System Status / Automation Health */}
+              {/* System Status — Real Data */}
               <div className="card-p bg-white rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="font-extrabold text-gray-900 flex items-center gap-2">
                     <Server size={18} className="text-primary-600" /> System Status
                   </h2>
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-extrabold border border-green-200/60 uppercase tracking-wider">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                    Healthy
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-sm gap-4">
-                    <span className="text-gray-600 font-medium whitespace-nowrap">Data Pipeline Sync</span>
-                    <span className="font-bold text-gray-900 flex items-center justify-end gap-1.5 whitespace-nowrap">
-                      <CheckCircle2 size={14} className="text-green-600"/> 5 mins ago
+                  <div className="flex items-center gap-2">
+                    {sysLoading ? (
+                      <Loader2 size={13} className="animate-spin text-gray-400" />
+                    ) : (
+                      <button onClick={fetchSystemStatus} className="p-1 text-gray-400 hover:text-primary-600 transition-colors" title="Refresh">
+                        <RefreshCw size={13} />
+                      </button>
+                    )}
+                    <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold border uppercase tracking-wider ${
+                      sysError ? 'bg-red-50 text-red-700 border-red-200/60' :
+                      healthy ? 'bg-green-50 text-green-700 border-green-200/60' :
+                      'bg-yellow-50 text-yellow-700 border-yellow-200/60'
+                    }`}>
+                      <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                        sysError ? 'bg-red-500' : healthy ? 'bg-green-500' : 'bg-yellow-500'
+                      }`} />
+                      {sysError ? 'Error' : healthy ? 'Healthy' : 'Degraded'}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-4 gap-4">
-                    <span className="text-gray-600 font-medium whitespace-nowrap">Background Workers</span>
-                    <span className="font-bold text-gray-900 whitespace-nowrap">Active (3 nodes)</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-4 gap-4">
-                    <span className="text-gray-600 font-medium whitespace-nowrap">API Latency</span>
-                    <span className="font-bold text-green-600 whitespace-nowrap">~42ms</span>
-                  </div>
                 </div>
+
+                {sysLoading ? (
+                  <div className="py-6 flex justify-center"><Loader2 className="animate-spin text-primary-400" size={24} /></div>
+                ) : sysError ? (
+                  <div className="flex items-center gap-2 text-red-600 text-sm font-medium py-4">
+                    <AlertCircle size={16} />
+                    <span>Could not load system status</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {/* Database */}
+                    <div className="flex justify-between items-center text-sm gap-4">
+                      <span className="text-gray-500 flex items-center gap-1.5">
+                        <Database size={13} className="text-gray-400" /> Database
+                      </span>
+                      <span className={`font-bold flex items-center gap-1 ${
+                        sysStatus?.database?.healthy ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        <CheckCircle2 size={13} />
+                        {sysStatus?.database?.status}
+                        {sysStatus?.database?.latencyMs != null && (
+                          <span className="text-gray-400 font-medium"> ({sysStatus.database.latencyMs}ms)</span>
+                        )}
+                      </span>
+                    </div>
+
+                    {/* Uptime */}
+                    <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3.5 gap-4">
+                      <span className="text-gray-500 flex items-center gap-1.5">
+                        <Clock size={13} className="text-gray-400" /> Uptime
+                      </span>
+                      <span className="font-bold text-gray-900">{sysStatus?.server?.uptime || 'N/A'}</span>
+                    </div>
+
+                    {/* Memory */}
+                    <div className="border-t border-gray-100 pt-3.5">
+                      <div className="flex justify-between items-center text-sm gap-4">
+                        <span className="text-gray-500 flex items-center gap-1.5">
+                          <Cpu size={13} className="text-gray-400" /> Memory
+                        </span>
+                        <span className="font-bold text-gray-900 text-right">
+                          {sysStatus?.memory?.heapUsed} / {sysStatus?.memory?.heapTotal}
+                        </span>
+                      </div>
+                      <div className="mt-2 w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${
+                            (sysStatus?.memory?.heapPct || 0) > 80 ? 'bg-red-500' :
+                            (sysStatus?.memory?.heapPct || 0) > 60 ? 'bg-yellow-500' : 'bg-green-500'
+                          }`}
+                          style={{ width: `${sysStatus?.memory?.heapPct || 0}%` }}
+                        />
+                      </div>
+                      <p className="text-[11px] text-gray-400 mt-1 text-right">{sysStatus?.memory?.heapPct}% heap used</p>
+                    </div>
+
+                    {/* Environment */}
+                    <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3.5 gap-4">
+                      <span className="text-gray-500">Environment</span>
+                      <span className="font-bold text-gray-900 capitalize">{sysStatus?.server?.environment}</span>
+                    </div>
+
+                    {/* Deploy Target */}
+                    <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3.5 gap-4">
+                      <span className="text-gray-500">Platform</span>
+                      <span className="font-bold text-gray-900 uppercase tracking-wide text-xs">
+                        {sysStatus?.server?.deployTarget === 'k8s' ? '☸ Kubernetes' : '▲ Vercel'}
+                      </span>
+                    </div>
+
+                    {/* Last refreshed */}
+                    {lastRefreshed && (
+                      <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-3 text-right">
+                        Updated {lastRefreshed.toLocaleTimeString()}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Recent Activity */}
