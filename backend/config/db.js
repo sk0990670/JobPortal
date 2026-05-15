@@ -18,7 +18,6 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 10000, // 10s to find a server
       socketTimeoutMS: 45000,          // 45s socket timeout
       maxPoolSize: 10,                 // limit connections in serverless
-      bufferCommands: false,           // don't buffer if not connected
     };
 
     cached.promise = mongoose

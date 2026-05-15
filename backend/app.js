@@ -25,8 +25,18 @@ const app = express();
 // Trust proxy for rate limiter to work correctly behind Vercel
 app.set('trust proxy', 1);
 
-// Connect to MongoDB
-connectDB();
+// Middleware: ensure MongoDB is connected before every request (critical for serverless)
+// In traditional servers connectDB() runs once at startup; in Vercel serverless
+// functions the module is re-initialized on cold starts, so we await here.
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('DB connection failed:', err.message);
+    return res.status(503).json({ success: false, message: 'Database unavailable. Please try again.' });
+  }
+});
 
 // Initialize Passport (OAuth strategies)
 const passport = require('passport');
