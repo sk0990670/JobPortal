@@ -51,12 +51,15 @@ passport.use(
       clientID:     process.env.LINKEDIN_CLIENT_ID,
       clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
       callbackURL:  process.env.LINKEDIN_CALLBACK_URL,
-      scope:        ['openid', 'profile', 'email'],
+      // passport-linkedin-oauth2 uses LinkedIn v2 API (/v2/me) — NOT OpenID Connect
+      // Correct scopes for v2 API:
+      scope:         ['r_liteprofile', 'r_emailaddress'],
+      profileFields: ['id', 'first-name', 'last-name', 'email-address', 'profile-picture'],
     },
     async (_accessToken, _refreshToken, profile, done) => {
       try {
         const email      = profile.emails?.[0]?.value;
-        const fullName   = profile.displayName;
+        const fullName   = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim();
         const avatar     = profile.photos?.[0]?.value || '';
         const linkedinId = profile.id;
 
@@ -72,7 +75,6 @@ passport.use(
             user.linkedinId = linkedinId;
             user.isVerified = true;
             if (!user.avatar) user.avatar = avatar;
-            // Also store LinkedIn profile URL if available
             if (!user.profiles.linkedin && profile.profileUrl) {
               user.profiles.linkedin = profile.profileUrl;
             }
