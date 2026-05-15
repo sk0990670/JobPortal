@@ -129,7 +129,7 @@ const LoginPage = () => {
             {/* Social */}
             <div className="grid grid-cols-2 gap-3">
               <a
-                href="http://localhost:5000/api/auth/google"
+                href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/google`}
                 className="btn-secondary border-gray-300 hover:bg-gray-50 text-sm gap-2 justify-center flex items-center shadow-sm"
               >
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="w-4 h-4" />
