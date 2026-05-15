@@ -19,7 +19,9 @@ const JobDetailPage = lazy(() => import('./pages/JobDetailPage'));
 const InternshipPage = lazy(() => import('./pages/InternshipPage'));
 const CompaniesPage = lazy(() => import('./pages/CompaniesPage'));
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
-const AboutPage = lazy(() => import('./pages/AboutPage'));
+const AboutPage          = lazy(() => import('./pages/AboutPage'));
+const PrivacyPolicyPage  = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'));
 const PostJobPage = lazy(() => import('./pages/PostJobPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const MyApplications = lazy(() => import('./pages/MyApplications'));
@@ -57,7 +59,9 @@ const App = () => (
           <Route path="/jobs/:id" element={<JobDetailPage />} />
           <Route path="/internships" element={<InternshipPage />} />
           <Route path="/companies" element={<CompaniesPage />} />
-          <Route path="/about" element={<AboutPage />} />
+          <Route path="/about"   element={<AboutPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms"   element={<TermsOfServicePage />} />
         </Route>
 
         {/* Protected dashboard routes */}

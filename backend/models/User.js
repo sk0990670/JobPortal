@@ -63,7 +63,8 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
-    googleId: { type: String, default: '' }, // Google OAuth ID
+    googleId:   { type: String, default: '' }, // Google OAuth ID
+    linkedinId: { type: String, default: '' }, // LinkedIn OAuth ID
     avatar: { type: String, default: '' },
     phone: { type: String, default: '' },
     dateOfBirth: { type: Date },

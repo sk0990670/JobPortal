@@ -68,12 +68,31 @@ router.get(
   '/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=google_failed` }),
   (req, res) => {
-    // Generate JWT for the authenticated user
     const token = req.user.getSignedJwtToken
       ? req.user.getSignedJwtToken()
       : require('jsonwebtoken').sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
+    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+  }
+);
 
-    // Redirect to frontend with token in URL (frontend reads it once and stores in localStorage)
+/* ────────────────────────────────────────
+   LinkedIn OAuth routes
+──────────────────────────────────────── */
+
+// Step 1 — Redirect to LinkedIn consent screen
+router.get(
+  '/linkedin',
+  passport.authenticate('linkedin', { session: false })
+);
+
+// Step 2 — LinkedIn redirects back here with auth code
+router.get(
+  '/linkedin/callback',
+  passport.authenticate('linkedin', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/login?error=linkedin_failed` }),
+  (req, res) => {
+    const token = req.user.getSignedJwtToken
+      ? req.user.getSignedJwtToken()
+      : require('jsonwebtoken').sign({ id: req.user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE });
     res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
   }
 );
