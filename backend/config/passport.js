@@ -51,7 +51,6 @@ const linkedInStrategy = new LinkedInStrategy(
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
     callbackURL:  process.env.LINKEDIN_CALLBACK_URL,
     scope: ['openid', 'profile', 'email'],
-    state: true,
   },
   async (_accessToken, _refreshToken, profile, done) => {
     try {

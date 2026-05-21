@@ -82,7 +82,7 @@ router.get(
 // Step 1 — Redirect to LinkedIn consent screen
 router.get(
   '/linkedin',
-  passport.authenticate('linkedin', { session: false })
+  passport.authenticate('linkedin', { session: false, state: 'some_random_state_string' })
 );
 
 // Step 2 — LinkedIn redirects back here with auth code
