@@ -45,60 +45,86 @@ passport.use(
 );
 
 /* ─── LinkedIn OAuth Strategy ─── */
-passport.use(
-  new LinkedInStrategy(
-    {
-      clientID:     process.env.LINKEDIN_CLIENT_ID,
-      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
-      callbackURL:  process.env.LINKEDIN_CALLBACK_URL,
-      // Requires "Sign In with LinkedIn using OpenID Connect" product in LinkedIn Console
-      scope: ['openid', 'profile', 'email'],
-    },
-    async (_accessToken, _refreshToken, profile, done) => {
-      try {
-        const email      = profile.emails?.[0]?.value;
-        const fullName   = profile.displayName || `${profile.name?.givenName || ''} ${profile.name?.familyName || ''}`.trim();
-        const avatar     = profile.photos?.[0]?.value || '';
-        const linkedinId = profile.id;
+const linkedInStrategy = new LinkedInStrategy(
+  {
+    clientID:     process.env.LINKEDIN_CLIENT_ID,
+    clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+    callbackURL:  process.env.LINKEDIN_CALLBACK_URL,
+    scope: ['openid', 'profile', 'email'],
+    state: true,
+  },
+  async (_accessToken, _refreshToken, profile, done) => {
+    try {
+      const email      = profile.emails?.[0]?.value;
+      const fullName   = profile.displayName;
+      const avatar     = profile.photos?.[0]?.value || '';
+      const linkedinId = profile.id;
 
-        if (!email) return done(new Error('No email returned from LinkedIn'), null);
+      if (!email) return done(new Error('No email returned from LinkedIn'), null);
 
-        // 1. Already linked with this LinkedIn account
-        let user = await User.findOne({ linkedinId });
+      // 1. Already linked with this LinkedIn account
+      let user = await User.findOne({ linkedinId });
 
-        // 2. Account exists with same email — link LinkedIn
-        if (!user) {
-          user = await User.findOne({ email });
-          if (user) {
-            user.linkedinId = linkedinId;
-            user.isVerified = true;
-            if (!user.avatar) user.avatar = avatar;
-            if (!user.profiles.linkedin && profile.profileUrl) {
-              user.profiles.linkedin = profile.profileUrl;
-            }
-            await user.save({ validateBeforeSave: false });
-          }
+      // 2. Account exists with same email — link LinkedIn
+      if (!user) {
+        user = await User.findOne({ email });
+        if (user) {
+          user.linkedinId = linkedinId;
+          user.isVerified = true;
+          if (!user.avatar) user.avatar = avatar;
+          // Note: profileUrl is not in OIDC response by default, omit if missing
+          await user.save({ validateBeforeSave: false });
         }
-
-        // 3. Brand new user — create account
-        if (!user) {
-          user = await User.create({
-            fullName,
-            email,
-            linkedinId,
-            avatar,
-            isVerified: true,
-            profiles: { linkedin: profile.profileUrl || '' },
-          });
-        }
-
-        return done(null, user);
-      } catch (err) {
-        return done(err, null);
       }
+
+      // 3. Brand new user — create account
+      if (!user) {
+        user = await User.create({
+          fullName,
+          email,
+          linkedinId,
+          avatar,
+          isVerified: true,
+        });
+      }
+
+      return done(null, user);
+    } catch (err) {
+      return done(err, null);
     }
-  )
+  }
 );
+
+// Override the userProfile method to hit LinkedIn's new OIDC /v2/userinfo endpoint
+// because the passport-linkedin-oauth2 package is outdated and hits deprecated endpoints
+linkedInStrategy.userProfile = function(accessToken, done) {
+  this._oauth2.get('https://api.linkedin.com/v2/userinfo', accessToken, function (err, body, res) {
+    if (err) {
+      return done(new Error('failed to fetch user profile from LinkedIn OIDC endpoint'));
+    }
+    try {
+      const json = JSON.parse(body);
+      const profile = {
+        provider: 'linkedin',
+        id: json.sub,
+        displayName: json.name,
+        name: {
+          givenName: json.given_name,
+          familyName: json.family_name
+        },
+        emails: [{ value: json.email }],
+        photos: json.picture ? [{ value: json.picture }] : [],
+        _raw: body,
+        _json: json
+      };
+      done(null, profile);
+    } catch(e) {
+      done(e);
+    }
+  });
+};
+
+passport.use(linkedInStrategy);
 
 // Minimal session serialization (we use JWT, not sessions)
 passport.serializeUser((user, done) => done(null, user.id));
