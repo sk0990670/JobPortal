@@ -19,11 +19,16 @@
       "dest": "/backend/app.js"
     },
     {
-      "handle": "filesystem"
+      "src": "^/assets/(.*)",
+      "dest": "/frontend/assets/$1"
+    },
+    {
+      "src": "^/(.*\\.(js|css|svg|png|jpg|jpeg|ico|json|map|txt))$",
+      "dest": "/frontend/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
+      "dest": "/frontend/index.html"
     }
   ]
 }
