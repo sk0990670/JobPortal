@@ -95,32 +95,38 @@ const linkedInStrategy = new LinkedInStrategy(
 );
 
 // Override the userProfile method to hit LinkedIn's new OIDC /v2/userinfo endpoint
-// because the passport-linkedin-oauth2 package is outdated and hits deprecated endpoints
-linkedInStrategy.userProfile = function(accessToken, done) {
-  this._oauth2.get('https://api.linkedin.com/v2/userinfo', accessToken, function (err, body, res) {
-    if (err) {
-      return done(new Error('failed to fetch user profile from LinkedIn OIDC endpoint'));
+// using native fetch to properly format the Authorization Bearer header.
+linkedInStrategy.userProfile = async function(accessToken, done) {
+  try {
+    const response = await fetch('https://api.linkedin.com/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`LinkedIn API returned ${response.status}: ${response.statusText}`);
     }
-    try {
-      const json = JSON.parse(body);
-      const profile = {
-        provider: 'linkedin',
-        id: json.sub,
-        displayName: json.name,
-        name: {
-          givenName: json.given_name,
-          familyName: json.family_name
-        },
-        emails: [{ value: json.email }],
-        photos: json.picture ? [{ value: json.picture }] : [],
-        _raw: body,
-        _json: json
-      };
-      done(null, profile);
-    } catch(e) {
-      done(e);
-    }
-  });
+    
+    const json = await response.json();
+    const profile = {
+      provider: 'linkedin',
+      id: json.sub,
+      displayName: json.name,
+      name: {
+        givenName: json.given_name,
+        familyName: json.family_name
+      },
+      emails: [{ value: json.email }],
+      photos: json.picture ? [{ value: json.picture }] : [],
+      _raw: JSON.stringify(json),
+      _json: json
+    };
+    
+    done(null, profile);
+  } catch(e) {
+    done(new Error('failed to fetch user profile from LinkedIn OIDC endpoint: ' + e.message));
+  }
 };
 
 passport.use(linkedInStrategy);
