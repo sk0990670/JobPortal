@@ -168,6 +168,20 @@ const PostJobPage = () => {
                       </select>
                     </div>
                   </div>
+                  
+                  {watch('jobType') === 'Internship' && (
+                    <div className="flex items-center gap-2 mt-2 p-3 bg-primary-50 rounded-lg border border-primary-100 animate-fade-in">
+                      <input 
+                        type="checkbox" 
+                        {...register('ppoAvailable')} 
+                        id="ppoAvailable" 
+                        className="w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500 cursor-pointer"
+                      />
+                      <label htmlFor="ppoAvailable" className="text-sm font-bold text-primary-900 cursor-pointer select-none">
+                        PPO Available (Pre-Placement Offer)
+                      </label>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>

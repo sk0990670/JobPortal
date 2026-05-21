@@ -107,11 +107,8 @@ apiRouter.get('/health', (req, res) => {
   });
 });
 
-// Mount on standard /api
+// Mount on /api (works both locally and on Vercel)
 app.use('/api', apiRouter);
-
-// Mount on Vercel's routePrefix /_/backend/api
-app.use('/_/backend/api', apiRouter);
 
 // Error middleware (must be last)
 app.use(notFound);

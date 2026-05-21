@@ -10,8 +10,4 @@ export const adminService = {
     const response = await api.get('/admin/users');
     return response.data;
   },
-  getSystemStatus: async () => {
-    const response = await api.get('/admin/system-status');
-    return response.data;
-  },
 };

@@ -33,6 +33,7 @@ const InternshipPage = () => {
     queryKey: ['internships', queryParams],
     queryFn: () => jobService.getInternships(queryParams).then(r => r.data),
     keepPreviousData: true,
+    staleTime: 2 * 60 * 1000, // 2 minutes — show cached data instantly on revisit
   });
 
   const { data: featuredData } = useQuery({

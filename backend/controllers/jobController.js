@@ -227,13 +227,40 @@ const getFeaturedJobs = asyncHandler(async (req, res) => {
 // @route   GET /api/jobs/internships
 // @access  Public
 const getInternships = asyncHandler(async (req, res) => {
-  const { search, location, duration, minSalary, maxSalary, sort = '-createdAt', page = 1, limit = 10 } = req.query;
+  const { search, location, duration, minSalary, maxSalary, ppoAvailable, sort = '-createdAt', page = 1, limit = 10 } = req.query;
   const filter = { status: 'active', jobType: 'Internship' };
-  if (search) filter.$or = [{ title: { $regex: search, $options: 'i' } }];
+  if (search) filter.$or = [{ title: { $regex: search, $options: 'i' } }, { companyName: { $regex: search, $options: 'i' } }];
   if (location) filter.companyLocation = { $regex: location, $options: 'i' };
   if (duration) filter.duration = { $regex: duration, $options: 'i' };
-  if (minSalary) filter['salary.min'] = { $gte: Number(minSalary) };
-  if (maxSalary) filter['salary.max'] = { $lte: Number(maxSalary) };
+  
+  if (minSalary !== undefined) {
+    filter['salary.min'] = { $gte: Number(minSalary) };
+  }
+  
+  // Handle Unpaid which implies maxSalary = 0 or missing
+  let maxSalaryCondition = null;
+  if (maxSalary !== undefined) {
+    maxSalaryCondition = {
+      $or: [
+        { 'salary.max': { $lte: Number(maxSalary) } },
+        { 'salary.min': null },
+        { 'salary.min': 0 },
+        { 'salary.max': null },
+        { 'salary.max': 0 }
+      ]
+    };
+  }
+
+  // Merge $or conditions safely
+  if (filter.$or && maxSalaryCondition) {
+    filter.$and = [{ $or: filter.$or }, maxSalaryCondition];
+    delete filter.$or;
+  } else if (maxSalaryCondition) {
+    filter.$or = maxSalaryCondition.$or;
+  }
+  
+  if (ppoAvailable === 'true') filter.ppoAvailable = true;
+  
   const skip = (Number(page) - 1) * Number(limit);
   const [jobs, total] = await Promise.all([
     Job.find(filter).populate({ path: 'company', select: 'name logo isVerified' })
